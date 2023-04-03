@@ -87,22 +87,39 @@ export class ThreeEngine {
       // mixer.clipAction(animation).play();
       console.log("click");
       // 更新每个无人机的位置
-      this.uavs.forEach((uav,i) => {
-        let next_position = [];
-        next_position.push(t_data[1].state.uav_position[3*i])
-        next_position.push(t_data[1].state.uav_position[3*i+1])
-        next_position.push(t_data[1].state.uav_position[3*i+2])
 
-        this.updateUAVPosition(uav, next_position, 1, 1);
+      t_data.forEach((data,i)=>{
 
 
 
-      });
+        setTimeout(()=> {
+          this.uavs.forEach((uav,n) => {
+            let next_position = [];
+            next_position.push(data.state.uav_position[3*n])
+            next_position.push(data.state.uav_position[3*n+1])
+            next_position.push(data.state.uav_position[3*n+2])
+    
+            this.updateEntityPosition(uav, next_position, 1, 2000);
+          });
+  
+          this.users.forEach((user,k) => {
+            let next_position = [];
+            next_position.push(data.state.user_position[k*2])
+            next_position.push(data.state.user_position[k*2+1])
+            next_position.push(0)
+    
+            this.updateEntityPosition(user, next_position, 1, 2000);
+          });
+
+        }, 1000 * i);
+
+
+
+      })
+
     });
 
-    // t_data.forEach((data,index)=>{
 
-    // })
 
     // 逐帧渲染threejs
     let animate = () => {
@@ -193,18 +210,18 @@ export class ThreeEngine {
 
 
 
-  updateUAVPosition(uav, next_position, timeStep, duration) {
+  updateEntityPosition(entity, next_position, timeStep, duration) {
     // const nextPosition = uav_position.shift(); // 获取下一个位置并从数组中删除
   
-    const startPosition = uav.position.clone(); // 复制当前位置
+    const startPosition = entity.position.clone(); // 复制当前位置
     const endPosition = new THREE.Vector3(next_position[0], next_position[2], next_position[1]); // 将下一个位置转换为THREE.Vector3对象
   
     // 创建Tween动画
     new TWEEN.Tween(startPosition)
-      .to(endPosition, 1000)
+      .to(endPosition, duration)
       .onUpdate(() => {
         // 更新无人机的位置
-        uav.position.copy(startPosition);
+        entity.position.copy(startPosition);
       })
       .start();
   
