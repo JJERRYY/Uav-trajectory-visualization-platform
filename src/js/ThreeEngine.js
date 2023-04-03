@@ -26,8 +26,9 @@ export class ThreeEngine {
   uav_mixers = [];
   uavs = [];
   users = [];
+  
 
-  constructor(dom,t_cfg,t_data) {
+  constructor(dom,t_cfg,t_data,progress) {
     // 创建渲染器
     let renderer = new WebGLRenderer({
       antialias: true,  // 开启抗锯齿
@@ -82,6 +83,10 @@ export class ThreeEngine {
       MIDDLE: MOUSE.DOLLY,  // 中键缩放
       RIGHT: MOUSE.ROTATE   // 右键旋转
     } 
+
+    progress.digit = 0
+    progress.down = t_data.length+1
+    console.log(t_data)
     dom.addEventListener('click', () => {
       // 播放动画
       // mixer.clipAction(animation).play();
@@ -89,9 +94,6 @@ export class ThreeEngine {
       // 更新每个无人机的位置
 
       t_data.forEach((data,i)=>{
-
-
-
         setTimeout(()=> {
           this.uavs.forEach((uav,n) => {
             let next_position = [];
@@ -110,6 +112,8 @@ export class ThreeEngine {
     
             this.updateEntityPosition(user, next_position, 1, 2000);
           });
+          progress.digit=(progress.up/progress.down)*100
+          progress.up = i+1
 
         }, 1000 * i);
 
@@ -118,7 +122,6 @@ export class ThreeEngine {
       })
 
     });
-
 
 
     // 逐帧渲染threejs
@@ -139,6 +142,8 @@ export class ThreeEngine {
     animate()
     
   }
+
+  
 
   initUAVUser(t_cfg,t_data){
     const loader = new GLTFLoader();

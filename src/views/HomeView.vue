@@ -50,10 +50,15 @@
               </el-timeline>
           </el-card>
         </el-aside>
-        <el-main class="common-layout">
-          
-          <div class="three-canvas common-layout" ref="threeTarget"></div>
+        <el-main class="common-layout ">
+          <div class="canvas-wrapper">
+            <div class="three-canvas common-layout" ref="threeTarget"></div>
 
+            <a-card class="card progress" hoverable  style="width: 300px">
+              <a-progress :percent="progress.digit" :format="()=> progress.up+'/'+progress.down" status="active" />
+            </a-card>
+
+          </div>
         </el-main>
       </el-container>
     </el-container>
@@ -61,12 +66,12 @@
 </template>
 
 <script lang="ts" setup>
-import { defineComponent, ref } from 'vue';
+import { defineComponent, reactive, ref } from 'vue';
 import { MoreFilled } from '@element-plus/icons-vue'
 
 
-
 const activeIndex = ref('1')
+
 const handleSelect = (key: string, keyPath: string[]) => {
   console.log(key, keyPath)
 }
@@ -110,9 +115,17 @@ import { allBaseObject,AirPlane } from '../js/TBaseObject'
 import {allLights} from'../js/TLights'
 import { allHelper } from '../js/THelper'
 
+const progress= reactive({
+      digit: 0,
+      up:0,
+      down:0
+    })
 export default {
+
+
     data() {
       return {
+        progress:progress,
         ThreeEngine: null,
         train_config: {
             actor_lr: 0,
@@ -267,14 +280,15 @@ export default {
       };
     },
     mounted() {
-      this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.train_config,this.train_data)
+      this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.train_config,this.train_data,this.progress)
       // this.ThreeEngine.addObject(...allBaseObject)  // 添加基础模型
       // var Airplane = new AirPlane()
       // this.ThreeEngine.addObject(Airplane)  // 添加基础模型
       this.ThreeEngine.addObject(...allLights)  // 添加光线
       this.ThreeEngine.addObject(...allHelper)   // 添加辅助
+      
+    },
 
-    }
   }
 
 
@@ -286,14 +300,24 @@ export default {
 
 .three-canvas {
   /* background-color: #d6eaff; */
-
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: linear-gradient(#e4e0ba, #f7d9aa);
+
+  z-index: 1;
+
 }
 
 .common-layout {
+  height: 100%;
+  width: 100%;
+}
+.canvas-wrapper {
+  position: relative;
   height: 100%;
   width: 100%;
 }
@@ -312,5 +336,21 @@ export default {
 .list-card .component {
     padding-left: 10px;
   }
+
+  .progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+.card {
+  opacity: .5;
+  transition: opacity 1s ease-in-out;
+}
+
+.card:hover {
+  opacity: 1;
+}
 
 </style>
