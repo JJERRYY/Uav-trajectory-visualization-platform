@@ -130,51 +130,63 @@ export class ThreeEngine {
     var user_num = t_cfg.num_users;
     var uav_scale = 0.25;
     var uav_y_pos = 50;
-  
+    let promises = [];
+
     for (let i = 0; i < uav_num; i++) {
-      loader.load('public/resource/uav_fly.glb', (gltf)=> {
-        var mesh = gltf.scene.getObjectByName('uav');
-        let mixer = new THREE.AnimationMixer( mesh );
-
-        let action = mixer.clipAction(gltf.animations[1]);
-        action.play();
-        this.uav_mixers.push(mixer)
-
-        mesh.scale.set(uav_scale, uav_scale, uav_scale);
-        mesh.position.x = t_data[0].state.uav_position[i * 3];
-
-        mesh.position.y = t_data[0].state.uav_position[i * 3+2];
-        mesh.position.z = t_data[0].state.uav_position[i * 3 + 1];
-        this.uavs.push(mesh)
-        // console.log(mesh)
-        // mesh.position.y = uav_y_pos;
-        console.log(i+"加载完成");
-
-        this.scene.add(mesh);
-      }, undefined, function(error) {
-        console.error(error);
-      });
-
-
-    }
+      let promise = new Promise((resolve, reject) => {
+        loader.load('public/resource/uav_fly.glb', (gltf)=> {
+          var mesh = gltf.scene.getObjectByName('uav');
+          let mixer = new THREE.AnimationMixer( mesh );
   
+          let action = mixer.clipAction(gltf.animations[1]);
+          action.play();
+          this.uav_mixers.push(mixer)
+  
+          mesh.scale.set(uav_scale, uav_scale, uav_scale);
+          mesh.position.x = t_data[0].state.uav_position[i * 3];
+  
+          mesh.position.y = t_data[0].state.uav_position[i * 3+2];
+          mesh.position.z = t_data[0].state.uav_position[i * 3 + 1];
+          this.uavs.push(mesh)
+  
+          this.scene.add(mesh);
+  
+          resolve();
+        }, undefined, function(error) {
+          console.error(error);
+        });
+      });
+  
+      promises.push(promise);
+    }
+    Promise.all(promises).then(() => {
+      console.log('All UAVs loaded!');
+    });
+  
+    let promise = Promise.resolve();
+
     for (let i = 0; i < user_num; i++) {
-      loader.load('public/resource/robot3.gltf', (gltf)=> {
-        var mesh = gltf.scene.getObjectByName('robot');
-        let mixer = new THREE.AnimationMixer( mesh );
-
-
-        let action = mixer.clipAction(gltf.animations[0]);
-        action.play();
-        this.user_mixers.push(mixer)
-
-        mesh.position.x = t_data[0].state.user_position[i * 2];
-        mesh.position.y = 0;
-        mesh.position.z = t_data[0].state.user_position[i * 2 + 1];
-        this.users.push(mesh)
-        this.scene.add(mesh);
-      }, undefined, function(error) {
-        console.error(error);
+      promise = promise.then(() => {
+        return new Promise((resolve, reject) => {
+          loader.load('public/resource/robot3.gltf', (gltf)=> {
+            var mesh = gltf.scene.getObjectByName('robot');
+            let mixer = new THREE.AnimationMixer( mesh );
+    
+            let action = mixer.clipAction(gltf.animations[0]);
+            action.play();
+            this.user_mixers.push(mixer)
+    
+            mesh.position.x = t_data[0].state.user_position[i * 2];
+            mesh.position.y = 0;
+            mesh.position.z = t_data[0].state.user_position[i * 2 + 1];
+            this.users.push(mesh)
+            this.scene.add(mesh);
+    
+            resolve();
+          }, undefined, function(error) {
+            console.error(error);
+          });
+        });
       });
     }
   }
