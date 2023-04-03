@@ -157,15 +157,69 @@ export default {
           },
           reward: 0,
           next_state: {
-            uav_position: "string",
-            user_position: "string",
+            uav_position: [
+                60,
+                110,
+                120,
+                95,
+                90,
+                115
+            ],
+            user_position: [
+                52,
+                112,
+                102,
+                125,
+            ],
             user_rate: "string"
           },
           done: true
-        }
+        },        
+        {
+          episode_id: 1,
+          state: {
+            uav_position: [
+                60,
+                110,
+                120,
+                95,
+                90,
+                115
+            ],
+            user_position: [
+                52,
+                112,
+                102,
+                125,
+            ],
+            user_rate: "string"
+          },
+          action: {
+            uav_direction_distance: "string",
+            uav_power: "string",
+            uav_association: "string"
+          },
+          reward: 0,
+          next_state: {
+            uav_position: [
+                65,
+                114,
+                120,
+                95,
+                90,
+                115
+            ],
+            user_position: [
+                55,
+                107,
+                100,
+                120,
+            ],
+            user_rate: "string"
+          },
+          done: true
+        },
       ],
-
-
       };
     },
     mounted() {

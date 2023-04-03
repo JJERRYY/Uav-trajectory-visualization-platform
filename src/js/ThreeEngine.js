@@ -24,6 +24,8 @@ export class ThreeEngine {
   scene = null; // 场景
   user_mixers = [];
   uav_mixers = [];
+  uavs = [];
+  users = [];
 
   constructor(dom,t_cfg,t_data) {
     // 创建渲染器
@@ -71,53 +73,6 @@ export class ThreeEngine {
     const texture = texLoader.load('public\\resource\\Robot3_lambert2SG_Diffuse.png');// 加载手机mesh另一个颜色贴图
     texture.encoding = THREE.sRGBEncoding; //和渲染器.outputEncoding一样值
     this.initUAVUser(t_cfg,t_data)
-    // var user_mixer = new THREE.AnimationMixer();
-    // const loader = new GLTFLoader();
-    // loader.load( 'public/resource/robot3.gltf', function ( gltf ) {
-    //   console.log(gltf)
-
-    //     // scene.add( gltf.scene );
-    //     var mesh = gltf.scene.getObjectByName('robot');
-    //     console.log(mesh)
-    //     // mesh.material.map = texture;
-    //     user_mixer = new THREE.AnimationMixer( mesh );
-    //     // console.log(gltf.animations)
-    //     var action = user_mixer.clipAction( gltf.animations[ 0 ] );
-    //     action.play();
-    //     scene.add( mesh );
-    // }, undefined, function ( error ) {
-    //     console.error( error );
-    // } );
-
-    // var uav_mixer = new THREE.AnimationMixer();
-    // loader.load( 'public/resource/uav_fly.glb', function ( gltf ) {
-    //   console.log(gltf)
-
-    //     // scene.add( gltf.scene );
-    //     var mesh = gltf.scene.getObjectByName('uav');
-    //     console.log(mesh)
-    //     // mesh.material.map = texture;
-    //     uav_mixer = new THREE.AnimationMixer( mesh );
-    //     // console.log(gltf.animations)
-    //     var action = uav_mixer.clipAction( gltf.animations[ 1 ] );
-    //     action.play();
-    //     mesh.scale.set(.25,.25,.25)
-    //     mesh.position.y = 50
-    //     scene.add( mesh );
-    // }, undefined, function ( error ) {
-    //     console.error( error );
-    // } );
-
-
-
-    // var loader = new FBXLoader();
-    // loader.load( 'public/resource/RobotMaybe.fbx', function ( object ) {
-    //     object.material.map = texture;
-    //     mixer = new THREE.AnimationMixer( object );
-    //     var action = mixer.clipAction( object.animations[ 0 ] );
-    //     action.play();
-    //     scene.add( object );
-    // } );
 
 
     // let orbitControls = new OrbitControls(camera, renderer.domElement)//轨道控制器
@@ -127,20 +82,40 @@ export class ThreeEngine {
       MIDDLE: MOUSE.DOLLY,  // 中键缩放
       RIGHT: MOUSE.ROTATE   // 右键旋转
     } 
+    dom.addEventListener('click', () => {
+      // 播放动画
+      // mixer.clipAction(animation).play();
+      console.log("click");
+      // 更新每个无人机的位置
+      this.uavs.forEach((uav,i) => {
+        let next_position = [];
+        next_position.push(t_data[1].state.uav_position[3*i])
+        next_position.push(t_data[1].state.uav_position[3*i+1])
+        next_position.push(t_data[1].state.uav_position[3*i+2])
 
+        this.updateUAVPosition(uav, next_position, 1, 1);
+
+
+
+      });
+    });
+
+    // t_data.forEach((data,index)=>{
+
+    // })
 
     // 逐帧渲染threejs
     let animate = () => {
       const delta = clock.getDelta();
+      requestAnimationFrame(animate);
+
       for ( const mixer of this.uav_mixers ) mixer.update( delta );
       for ( const mixer of this.user_mixers ) mixer.update( delta );
 
       renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.render(scene, camera)  // 渲染器渲染场景和相机
-      requestAnimationFrame(animate);
-      // console.log(delta);
-      // this.uav_mixer.update(delta);
-      // this.user_mixer.update(delta);
+      TWEEN.update();
+
 
 
     }
@@ -157,7 +132,6 @@ export class ThreeEngine {
     var uav_y_pos = 50;
   
     for (let i = 0; i < uav_num; i++) {
-      // console.log(i);
       loader.load('public/resource/uav_fly.glb', (gltf)=> {
         var mesh = gltf.scene.getObjectByName('uav');
         let mixer = new THREE.AnimationMixer( mesh );
@@ -171,12 +145,17 @@ export class ThreeEngine {
 
         mesh.position.y = t_data[0].state.uav_position[i * 3+2];
         mesh.position.z = t_data[0].state.uav_position[i * 3 + 1];
+        this.uavs.push(mesh)
         // console.log(mesh)
         // mesh.position.y = uav_y_pos;
+        console.log(i+"加载完成");
+
         this.scene.add(mesh);
       }, undefined, function(error) {
         console.error(error);
       });
+
+
     }
   
     for (let i = 0; i < user_num; i++) {
@@ -192,6 +171,7 @@ export class ThreeEngine {
         mesh.position.x = t_data[0].state.user_position[i * 2];
         mesh.position.y = 0;
         mesh.position.z = t_data[0].state.user_position[i * 2 + 1];
+        this.users.push(mesh)
         this.scene.add(mesh);
       }, undefined, function(error) {
         console.error(error);
@@ -201,23 +181,23 @@ export class ThreeEngine {
 
 
 
-  updateUAVPosition(uav, uav_position, timeStep, duration) {
-    const nextPosition = uav_position.shift(); // 获取下一个位置并从数组中删除
+  updateUAVPosition(uav, next_position, timeStep, duration) {
+    // const nextPosition = uav_position.shift(); // 获取下一个位置并从数组中删除
   
     const startPosition = uav.position.clone(); // 复制当前位置
-    const endPosition = new THREE.Vector3(nextPosition.x, nextPosition.y, nextPosition.z); // 将下一个位置转换为THREE.Vector3对象
+    const endPosition = new THREE.Vector3(next_position[0], next_position[2], next_position[1]); // 将下一个位置转换为THREE.Vector3对象
   
     // 创建Tween动画
     new TWEEN.Tween(startPosition)
-      .to(endPosition, duration)
+      .to(endPosition, 1000)
       .onUpdate(() => {
         // 更新无人机的位置
         uav.position.copy(startPosition);
       })
       .start();
   
-    // 将下一个位置重新插入到数组末尾，以便在下一次更新时使用
-    uav_position.push(nextPosition);
+    // // 将下一个位置重新插入到数组末尾，以便在下一次更新时使用
+    // uav_position.push(nextPosition);
   }
   
 
