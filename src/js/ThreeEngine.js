@@ -49,7 +49,7 @@ export class ThreeEngine {
 
 	// 实例化相机
     let camera = new PerspectiveCamera(45, dom.offsetWidth / dom.offsetHeight, 1, 1000)  	   
-    camera.position.set(150, 150, 150) // 设置相机位置
+    camera.position.set(300, 300, 300) // 设置相机位置
     camera.lookAt(new Vector3(0, 0, 0))  // 设置相机看先中心点
     camera.up = new Vector3(0, 1, 0)  // 设置相机自身方向
     console.log(camera);
@@ -117,7 +117,7 @@ export class ThreeEngine {
     this.labelRenderer = new CSS2DRenderer();
     this.labelRenderer.setSize( dom.offsetWidth,dom.offsetWidth );
     this.labelRenderer.domElement.style.position = 'absolute';
-    this.labelRenderer.domElement.style.top = '10px';
+    this.labelRenderer.domElement.style.top = '0px';
     // this.labelRenderer.domElement.style.left = '0px';
     this.labelRenderer.domElement.style.pointerEvents = 'none';
     dom.appendChild( this.labelRenderer.domElement );
@@ -142,6 +142,9 @@ export class ThreeEngine {
             next_position.push(data.state.uav_position[3*n+2])
     
             this.updateEntityPosition(uav, next_position, 1, 2000);
+            uav.remove(uav.getObjectByName('label'))
+            uav.add(this.tag(uav.name,uav.position))
+
           });
   
           this.users.forEach((user,k) => {
@@ -151,7 +154,9 @@ export class ThreeEngine {
             next_position.push(0)
     
             this.updateEntityPosition(user, next_position, 1, 2000);
-          });
+            user.remove(user.getObjectByName('label'))
+            user.add(this.tag(user.name,user.position))
+                    });
           progress.up = i+1
           progress.digit=(progress.up/progress.down)*100
         }, 5000 * i);
@@ -228,7 +233,7 @@ export class ThreeEngine {
           let action = mixer.clipAction(gltf.animations[1]);
           action.play();
           this.uav_mixers.push(mixer)
-  
+          mesh.name = 'uav'+i
           mesh.scale.set(uav_scale, uav_scale, uav_scale);
           mesh.position.x = t_data[0].state.uav_position[i * 3];
   
@@ -236,17 +241,9 @@ export class ThreeEngine {
           mesh.position.z = t_data[0].state.uav_position[i * 3 + 1];
           this.uavs.push(mesh)
           this.scene.add(mesh);
-          console.log(mesh);
-          // var content = mesh.name+i+'\n'+'(${mesh.position.x},${mesh.position.y},${mesh.position.z})'
-          var content = mesh.name + i + '(' + mesh.position.x + ',' + mesh.position.y + ',' + mesh.position.z + ')'
-          var label = this.tag(content);//把粮仓名称obj.name作为标签
-          // var pos = new THREE.Vector3();
-          // mesh.getWorldPosition(pos);//获取obj世界坐标、
-          label.position.y = 5
-          label.position.z = -5
-          // label.scale.set(0.2, 0.2, 0.2);//根据相机渲染范围控制HTML 3D标签尺寸
+          
+          var label = this.tag(mesh.name,mesh.position);//把粮仓名称obj.name作为标签
           mesh.add(label);//标签插入model组对象中
-          console.log(label);
           resolve();
         }, undefined, function(error) {
           console.error(error);
@@ -271,13 +268,16 @@ export class ThreeEngine {
             let action = mixer.clipAction(gltf.animations[0]);
             action.play();
             this.user_mixers.push(mixer)
-    
+            mesh.name = 'user'+i
             mesh.position.x = t_data[0].state.user_position[i * 2];
             mesh.position.y = 0;
             mesh.position.z = t_data[0].state.user_position[i * 2 + 1];
             this.users.push(mesh)
+            var label = this.tag(mesh.name,mesh.position);//
+            mesh.add(label);//标签插入model组对象中
+            console.log(label);
             this.scene.add(mesh);
-    
+            console.log(mesh);
             resolve();
           }, undefined, function(error) {
             console.error(error);
@@ -321,10 +321,11 @@ export class ThreeEngine {
     }
     
     
-    tag(name) {
+    tag(name,position) {
       // 创建div元素(作为标签)
       var div = document.createElement('div');
-      div.innerHTML = name;
+      var content = name +'<br>' +'(' + position.x + ',' + position.y + ',' + position.z + ')'
+      div.innerHTML = content;
       div.style.padding = '0px 4px';
       // div.style.top='-10px'
       // div.style.left= '-10px'
@@ -338,6 +339,9 @@ export class ThreeEngine {
       div.style.pointerEvents = 'none';//避免HTML标签遮挡三维场景的鼠标事件
       // 设置HTML元素标签在three.js世界坐标中位置
       // label.position.set(x, y, z);
+      label.position.y = 40
+      label.name='label'
+      // label.position.z = 5
       return label;//返回CSS3模型标签
     }
 
