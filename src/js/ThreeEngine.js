@@ -85,12 +85,10 @@ export class ThreeEngine {
     } 
 
     progress.digit = 0
-    progress.down = t_data.length+1
-    console.log(t_data)
+    progress.down = t_data.length
     dom.addEventListener('click', () => {
       // 播放动画
       // mixer.clipAction(animation).play();
-      console.log("click");
       // 更新每个无人机的位置
 
       t_data.forEach((data,i)=>{
@@ -112,12 +110,9 @@ export class ThreeEngine {
     
             this.updateEntityPosition(user, next_position, 1, 2000);
           });
-          progress.digit=(progress.up/progress.down)*100
           progress.up = i+1
-
-        }, 1000 * i);
-
-
+          progress.digit=(progress.up/progress.down)*100
+        }, 5000 * i);
 
       })
 
