@@ -41,7 +41,7 @@
                 :size="activity.size"
                 :hollow="activity.hollow"
                 :timestamp="activity.timestamp"
-                @click="handleClick(activity)"
+                @click="handleClick(activity,index)"
                 @change="onPageChange"
                 >
                 {{ activity.content }}
@@ -59,7 +59,9 @@
             <div class="three-canvas common-layout" ref="threeTarget"></div>
 
             <a-card class="card progress" hoverable  style="width: 300px">
-              <a-progress :percent="progress.digit" :format="()=> progress.up+'/'+progress.down" status="active" />
+              <a-progress :percent="episode_progress.digit" :format="()=> episode_progress.up+'/'+episode_progress.down" status="active" />
+              <a-progress :percent="step_progress.digit" :format="()=> step_progress.up+'/'+step_progress.down" status="active" />
+
             </a-card>
 
           </div>
@@ -91,7 +93,12 @@ import {allLights} from'../js/TLights'
 import { allHelper } from '../js/THelper'
 import { getTrainingDataList,getTrainingDataById } from '../js/api'
 
-const progress= reactive({
+const episode_progress= reactive({
+      digit: 0,
+      up:0,
+      down:0
+    })
+const step_progress= reactive({
       digit: 0,
       up:0,
       down:0
@@ -109,169 +116,162 @@ export default {
           icon: MoreFilled,
         },
       ],
-      currentPageList : [
-        {
-          content: 'Custom icon',
-          timestamp: '2018-04-12 20:46',
-          size: 'large',
-          type: 'primary',
-          icon: MoreFilled,
-        },
-      ],
-
         current_page: ref(1),
-        progress:progress,
+        episode_progress:episode_progress,
+        step_progress:step_progress,
         ThreeEngine: null,
-        train_config: {
-            actor_lr: 0,
-            critic_lr: 0,
-            num_episodes: 0,
-            num_steps: 0,
-            gamma: 0,
-            hidden_dim: 0,
-            tau: 0,
-            buffer_size: 0,
-            minimal_size: 0,
-            batch_size: 0,
-            sigma: 0,
-            num_uavs: 2,
-            num_users: 2,
-            env_name: "string"
-      },
-      train_data: [
-        {
-          episode_id: 0,
-          state: {
-            uav_position: [
-                54,
-                100,
-                120,
-                100,
-                100,
-                115
-            ],
-            user_position: [
-                54,
-                110,
-                100,
-                115,
-            ],
-            user_rate: "string"
-          },
-          action: {
-            uav_direction_distance: "string",
-            uav_power: "string",
-            uav_association: "string"
-          },
-          reward: 0,
-          next_state: {
-            uav_position: [
-                60,
-                110,
-                120,
-                95,
-                90,
-                115
-            ],
-            user_position: [
-                52,
-                112,
-                102,
-                125,
-            ],
-            user_rate: "string"
-          },
-          done: true
-        },        
-        {
-          episode_id: 1,
-          state: {
-            uav_position: [
-                60,
-                110,
-                120,
-                95,
-                90,
-                115
-            ],
-            user_position: [
-                52,
-                112,
-                102,
-                125,
-            ],
-            user_rate: "string"
-          },
-          action: {
-            uav_direction_distance: "string",
-            uav_power: "string",
-            uav_association: "string"
-          },
-          reward: 0,
-          next_state: {
-            uav_position: [
-                65,
-                114,
-                120,
-                95,
-                90,
-                115
-            ],
-            user_position: [
-                55,
-                107,
-                100,
-                120,
-            ],
-            user_rate: "string"
-          },
-          done: true
-        },
-        {
-          episode_id: 2,
-          state: {
-            uav_position: [
-                65,
-                125,
-                120,
-                45,
-                105,
-                115
-            ],
-            user_position: [
-                65,
-                179,
-                122,
-                15,
-            ],
-            user_rate: "string"
-          },
-          action: {
-            uav_direction_distance: "string",
-            uav_power: "string",
-            uav_association: "string"
-          },
-          reward: 0,
-          next_state: {
-            uav_position: [
-                65,
-                114,
-                120,
-                95,
-                90,
-                115
-            ],
-            user_position: [
-                55,
-                107,
-                100,
-                120,
-            ],
-            user_rate: "string"
-          },
-          done: true
-        },
-      ],
+        selectedTrainData:null,
+        
+      //   train_config: {
+      //       actor_lr: 0,
+      //       critic_lr: 0,
+      //       num_episodes: 0,
+      //       num_steps: 0,
+      //       gamma: 0,
+      //       hidden_dim: 0,
+      //       tau: 0,
+      //       buffer_size: 0,
+      //       minimal_size: 0,
+      //       batch_size: 0,
+      //       sigma: 0,
+      //       num_uavs: 2,
+      //       num_users: 2,
+      //       env_name: "string"
+      // },
+      // train_data: [
+      //   {
+      //     episode_id: 0,
+      //     state: {
+      //       uav_position: [
+      //           54,
+      //           100,
+      //           120,
+      //           100,
+      //           100,
+      //           115
+      //       ],
+      //       user_position: [
+      //           54,
+      //           110,
+      //           100,
+      //           115,
+      //       ],
+      //       user_rate: "string"
+      //     },
+      //     action: {
+      //       uav_direction_distance: "string",
+      //       uav_power: "string",
+      //       uav_association: "string"
+      //     },
+      //     reward: 0,
+      //     next_state: {
+      //       uav_position: [
+      //           60,
+      //           110,
+      //           120,
+      //           95,
+      //           90,
+      //           115
+      //       ],
+      //       user_position: [
+      //           52,
+      //           112,
+      //           102,
+      //           125,
+      //       ],
+      //       user_rate: "string"
+      //     },
+      //     done: true
+      //   },        
+      //   {
+      //     episode_id: 1,
+      //     state: {
+      //       uav_position: [
+      //           60,
+      //           110,
+      //           120,
+      //           95,
+      //           90,
+      //           115
+      //       ],
+      //       user_position: [
+      //           52,
+      //           112,
+      //           102,
+      //           125,
+      //       ],
+      //       user_rate: "string"
+      //     },
+      //     action: {
+      //       uav_direction_distance: "string",
+      //       uav_power: "string",
+      //       uav_association: "string"
+      //     },
+      //     reward: 0,
+      //     next_state: {
+      //       uav_position: [
+      //           65,
+      //           114,
+      //           120,
+      //           95,
+      //           90,
+      //           115
+      //       ],
+      //       user_position: [
+      //           55,
+      //           107,
+      //           100,
+      //           120,
+      //       ],
+      //       user_rate: "string"
+      //     },
+      //     done: true
+      //   },
+      //   {
+      //     episode_id: 2,
+      //     state: {
+      //       uav_position: [
+      //           65,
+      //           125,
+      //           120,
+      //           45,
+      //           105,
+      //           115
+      //       ],
+      //       user_position: [
+      //           65,
+      //           179,
+      //           122,
+      //           15,
+      //       ],
+      //       user_rate: "string"
+      //     },
+      //     action: {
+      //       uav_direction_distance: "string",
+      //       uav_power: "string",
+      //       uav_association: "string"
+      //     },
+      //     reward: 0,
+      //     next_state: {
+      //       uav_position: [
+      //           65,
+      //           114,
+      //           120,
+      //           95,
+      //           90,
+      //           115
+      //       ],
+      //       user_position: [
+      //           55,
+      //           107,
+      //           100,
+      //           120,
+      //       ],
+      //       user_rate: "string"
+      //     },
+      //     done: true
+      //   },
+      // ],
       };
     },
     mounted() {
@@ -290,23 +290,38 @@ export default {
           item.size = 'large'
           // 并存入 trainList 中
           this.trainList.push(item)
+          this.selectedTrainData = item
+          // console.log(item);
+          
         })
+      // console.log(this.selectedTrainData.data[0]);
+      // console.dir(this.selectedTrainData);
+      // console.log(JSON.stringify(this.selectedTrainData));
+
+      this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.selectedTrainData.config,this.selectedTrainData.data,
+                                              this.episode_progress,
+                                              this.step_progress)
+      this.ThreeEngine.addObject(...allLights)  // 添加光线
+      this.ThreeEngine.addObject(...allHelper)   // 添加辅助
     })
 
 
-
-
-      this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.train_config,this.train_data,this.progress)
-      // this.ThreeEngine.addObject(...allBaseObject)  // 添加基础模型
-      // var Airplane = new AirPlane()
-      // this.ThreeEngine.addObject(Airplane)  // 添加基础模型
-      this.ThreeEngine.addObject(...allLights)  // 添加光线
-      this.ThreeEngine.addObject(...allHelper)   // 添加辅助
     },
   methods: {
-  handleClick(activity) {
-    // 在这里处理点击事件
-    console.log('Clicked on activity:', activity);
+  handleClick(activity,index) {
+    // console.log('Clicked on activity:', activity);
+    // 把this.trainList中当前index的item.hollow设成true 其他设成false
+    this.selectedTrainData = activity
+    this.trainList.forEach((item, i) => {
+    if (i === index) {
+      item.hollow = true;
+      item.type= 'primary'
+      console.log(item);
+    } else {
+      item.hollow = false;
+      item.type = null 
+    }
+  });
   },
   onPageChange(page,pageSize){
     getTrainingDataList(page, pageSize).then(response => {
@@ -322,6 +337,7 @@ export default {
           item.content = '训练id'+item.id
           item.timestamp = item.datetime
           item.size = 'large'
+          item.hollow = false
           // 并存入 trainList 中
           this.trainList.push(item)
         })

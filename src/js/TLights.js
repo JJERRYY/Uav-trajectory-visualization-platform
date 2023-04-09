@@ -18,7 +18,7 @@ export const pointLight = new PointLight(
     600,
     0.2
   )
-  pointLight.position.set(0, 100, 200)  // 设置点光源位置 (x,y,z)
+  pointLight.position.set(500, 100, 500)  // 设置点光源位置 (x,y,z)
   
   allLights.push(pointLight)  // 将点光源添加到光源列表抛出
   

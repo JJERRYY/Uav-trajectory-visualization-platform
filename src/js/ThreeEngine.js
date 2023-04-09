@@ -32,7 +32,7 @@ export class ThreeEngine {
   raycaster = null;
   labelRenderer = null;
 
-  constructor(dom,t_cfg,t_data,progress) {
+  constructor(dom,t_cfg,t_episodes,episode_progress,step_progress) {
     // 创建渲染器
     let renderer = new WebGLRenderer({
       antialias: true,  // 开启抗锯齿
@@ -49,9 +49,15 @@ export class ThreeEngine {
 
 	// 实例化相机
     let camera = new PerspectiveCamera(45, dom.offsetWidth / dom.offsetHeight, 1, 1000)  	   
-    camera.position.set(300, 300, 300) // 设置相机位置
-    camera.lookAt(new Vector3(0, 0, 0))  // 设置相机看先中心点
+    // camera.position.set(500, 400, 1600) // 设置相机位置
+    camera.far = 10000; // 将最大渲染距离设置为5000
+    camera.position.set(1600, 570, 500);
+    // camera.lookAt(new THREE.Vector3(500, 0, 0));
     camera.up = new Vector3(0, 1, 0)  // 设置相机自身方向
+    camera.lookAt(new Vector3(500, 0, 800))  // 设置相机看先中心点
+
+    camera.updateProjectionMatrix(); // 更新相机的投影矩阵
+
     console.log(camera);
     const clock = new THREE.Clock();
     this.dom = dom
@@ -64,14 +70,25 @@ export class ThreeEngine {
 
 
     //路面
+    // const floorMat = new THREE.MeshStandardMaterial({
+    //   color: 0xa9a9a9, // 材质的颜色
+    // });
+    // const floorGeometry = new THREE.BoxGeometry(1000, 1000, 0.1, 1, 1, 1);
+    // const floorMesh = new THREE.Mesh(floorGeometry, floorMat);
+    // floorMesh.receiveShadow = true;
+    // floorMesh.rotation.x = -Math.PI / 2.0;
+    // scene.add(floorMesh);
+
+
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0xa9a9a9, // 材质的颜色
-    });
-    const floorGeometry = new THREE.BoxGeometry(1000, 1000, 0.1, 1, 1, 1);
-    const floorMesh = new THREE.Mesh(floorGeometry, floorMat);
-    floorMesh.receiveShadow = true;
-    floorMesh.rotation.x = -Math.PI / 2.0;
-    scene.add(floorMesh);
+      color: 0xa9a9a9,
+  });
+  const floorGeometry = new THREE.BoxGeometry(1000, 1000, 0.1, 1, 1, 1);
+  const floorMesh = new THREE.Mesh(floorGeometry, floorMat);
+  floorMesh.receiveShadow = true;
+  floorMesh.rotation.x = -Math.PI / 2.0;
+  floorMesh.position.set(500, 0, 500); // Set the position of the floor mesh
+  scene.add(floorMesh);
 
     // var airplane = new MyObject.AirPlane();
     // airplane.scale.set(.25,.25,.25);
@@ -82,7 +99,8 @@ export class ThreeEngine {
     const texLoader = new THREE.TextureLoader();
     const texture = texLoader.load('public\\resource\\Robot3_lambert2SG_Diffuse.png');// 加载手机mesh另一个颜色贴图
     texture.encoding = THREE.sRGBEncoding; //和渲染器.outputEncoding一样值
-    this.initUAVUser(t_cfg,t_data)
+    console.log(t_episodes[0]);
+    this.initUAVUser(t_cfg,t_episodes[0])
 
 
     // let orbitControls = new OrbitControls(camera, renderer.domElement)//轨道控制器
@@ -126,44 +144,53 @@ export class ThreeEngine {
 
 
 
-    progress.digit = 0
-    progress.down = t_data.length
-    dom.addEventListener('click', () => {
+    episode_progress.digit = 0
+    episode_progress.down = t_episodes.length
+    step_progress.digit = 0
+    step_progress.down = t_episodes[0].num_step
+    dom.addEventListener('click', async () => {
       // 播放动画
       // mixer.clipAction(animation).play();
       // 更新每个无人机的位置
-
-      t_data.forEach((data,i)=>{
-        setTimeout(()=> {
-          this.uavs.forEach((uav,n) => {
+      for (let i = 0; i < t_episodes.length; i++) {
+        let episode = t_episodes[i];
+        step_progress.down = episode.num_step;
+        for (let j = 0; j < episode.step_data.length; j++) {
+          let step_data = episode.step_data[j];
+          this.uavs.forEach((uav, n) => {
             let next_position = [];
-            next_position.push(data.state.uav_position[3*n])
-            next_position.push(data.state.uav_position[3*n+1])
-            next_position.push(data.state.uav_position[3*n+2])
+            next_position.push(step_data.state.uav_position[n][0]);
+            next_position.push(step_data.state.uav_position[n][1]);
+            next_position.push(step_data.state.uav_position[n][2]);
     
             this.updateEntityPosition(uav, next_position, 1, 2000);
-            uav.remove(uav.getObjectByName('label'))
-            uav.add(this.tag(uav.name,uav.position))
-
+            uav.remove(uav.getObjectByName("label"));
+            uav.add(this.tag(uav.name, uav.position));
           });
-  
-          this.users.forEach((user,k) => {
+          this.users.forEach((user, k) => {
             let next_position = [];
-            next_position.push(data.state.user_position[k*2])
-            next_position.push(data.state.user_position[k*2+1])
-            next_position.push(0)
+            next_position.push(step_data.state.user_position[k][0]);
+            next_position.push(step_data.state.user_position[k][1]);
+            next_position.push(0);
     
             this.updateEntityPosition(user, next_position, 1, 2000);
-            user.remove(user.getObjectByName('label'))
-            user.add(this.tag(user.name,user.position))
-                    });
-          progress.up = i+1
-          progress.digit=(progress.up/progress.down)*100
-        }, 5000 * i);
+            user.remove(user.getObjectByName("label"));
+            user.add(this.tag(user.name, user.position));
+          });
+          step_progress.up = j + 1;
+          step_progress.digit = (step_progress.up / step_progress.down) * 100;
+          console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
 
-      })
+          await new Promise(resolve => setTimeout(resolve, 2000));
 
-    });
+        }
+        episode_progress.up = i + 1;
+        episode_progress.digit = (episode_progress.up / episode_progress.down) * 100;
+        console.log("episode" + episode_progress.digit);
+      }
+
+
+    })
 
 
     // 逐帧渲染threejs
@@ -213,12 +240,12 @@ export class ThreeEngine {
 
 
 
-  initUAVUser(t_cfg,t_data){
+  initUAVUser(t_cfg,episode){
     const loader = new GLTFLoader();
 
     var uav_num = t_cfg.num_uavs;
     var user_num = t_cfg.num_users;
-    var uav_scale = 0.5;
+    var uav_scale = 1;
     var uav_y_pos = 50;
     let promises = [];
 
@@ -235,14 +262,13 @@ export class ThreeEngine {
           this.uav_mixers.push(mixer)
           mesh.name = 'uav'+i
           mesh.scale.set(uav_scale, uav_scale, uav_scale);
-          mesh.position.x = t_data[0].state.uav_position[i * 3];
-  
-          mesh.position.y = t_data[0].state.uav_position[i * 3+2];
-          mesh.position.z = t_data[0].state.uav_position[i * 3 + 1];
+          mesh.position.x = episode.step_data[0].state.uav_position[i ][0];
+          mesh.position.y = episode.step_data[0].state.uav_position[i ][2];
+          mesh.position.z = episode.step_data[0].state.uav_position[i ][1];
           this.uavs.push(mesh)
           this.scene.add(mesh);
           
-          var label = this.tag(mesh.name,mesh.position);//把粮仓名称obj.name作为标签
+          var label = this.tag(mesh.name,mesh.position);//把名称obj.name作为标签
           mesh.add(label);//标签插入model组对象中
           resolve();
         }, undefined, function(error) {
@@ -269,9 +295,9 @@ export class ThreeEngine {
             action.play();
             this.user_mixers.push(mixer)
             mesh.name = 'user'+i
-            mesh.position.x = t_data[0].state.user_position[i * 2];
+            mesh.position.x = episode.step_data[0].state.user_position[i][0];
             mesh.position.y = 0;
-            mesh.position.z = t_data[0].state.user_position[i * 2 + 1];
+            mesh.position.z = episode.step_data[0].state.user_position[i][1];
             this.users.push(mesh)
             var label = this.tag(mesh.name,mesh.position);//
             mesh.add(label);//标签插入model组对象中
