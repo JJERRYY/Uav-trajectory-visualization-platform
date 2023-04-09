@@ -63,15 +63,15 @@ export class ThreeEngine {
 
 
 
-    // //路面
-    // const floorMat = new THREE.MeshStandardMaterial({
-    //   color: 0xa9a9a9, // 材质的颜色
-    // });
-    // const floorGeometry = new THREE.BoxGeometry(1000, 1000, 0.1, 1, 1, 1);
-    // const floorMesh = new THREE.Mesh(floorGeometry, floorMat);
-    // floorMesh.receiveShadow = true;
-    // floorMesh.rotation.x = -Math.PI / 2.0;
-    // scene.add(floorMesh);
+    //路面
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0xa9a9a9, // 材质的颜色
+    });
+    const floorGeometry = new THREE.BoxGeometry(1000, 1000, 0.1, 1, 1, 1);
+    const floorMesh = new THREE.Mesh(floorGeometry, floorMat);
+    floorMesh.receiveShadow = true;
+    floorMesh.rotation.x = -Math.PI / 2.0;
+    scene.add(floorMesh);
 
     // var airplane = new MyObject.AirPlane();
     // airplane.scale.set(.25,.25,.25);

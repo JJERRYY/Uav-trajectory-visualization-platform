@@ -34,20 +34,24 @@
                 <!-- <el-scrollbar class="scrollbar"> -->
 
                 <el-timeline-item
-                v-for="(activity, index) in activities"
+                v-for="(activity, index) in trainList"
                 :key="index"
-                :icon="activity.icon"
                 :type="activity.type"
                 :color="activity.color"
                 :size="activity.size"
                 :hollow="activity.hollow"
                 :timestamp="activity.timestamp"
+                @click="handleClick(activity)"
+                @change="onPageChange"
                 >
                 {{ activity.content }}
                 </el-timeline-item>
               <!-- </el-scrollbar> -->
 
               </el-timeline>
+            <div id="components-pagination-demo-mini">
+              <a-pagination size="small" v-model:current="current_page" :total="list_total_count" show-size-changer />
+            </div>
           </el-card>
         </el-aside>
         <el-main class="common-layout ">
@@ -76,35 +80,6 @@ const handleSelect = (key: string, keyPath: string[]) => {
   console.log(key, keyPath)
 }
 
-const activities = [
-  {
-    content: 'Custom icon',
-    timestamp: '2018-04-12 20:46',
-    size: 'large',
-    type: 'primary',
-    icon: MoreFilled,
-  },
-  {
-    content: 'Custom color',
-    timestamp: '2018-04-03 20:46',
-    color: '#0bbd87',
-  },
-  {
-    content: 'Custom size',
-    timestamp: '2018-04-03 20:46',
-    size: 'large',
-  },
-  {
-    content: 'Custom hollow',
-    timestamp: '2018-04-03 20:46',
-    type: 'primary',
-    hollow: true,
-  },
-  {
-    content: 'Default node',
-    timestamp: '2018-04-03 20:46',
-  },
-]
 
 </script>
 
@@ -114,6 +89,7 @@ import { ThreeEngine } from '../js/ThreeEngine';
 import { allBaseObject,AirPlane } from '../js/TBaseObject'
 import {allLights} from'../js/TLights'
 import { allHelper } from '../js/THelper'
+import { getTrainingDataList,getTrainingDataById } from '../js/api'
 
 const progress= reactive({
       digit: 0,
@@ -121,10 +97,29 @@ const progress= reactive({
       down:0
     })
 export default {
-
-
     data() {
       return {
+        list_total_count:0,
+        trainList : [
+        {
+          content: 'Custom icon',
+          timestamp: '2018-04-12 20:46',
+          size: 'large',
+          type: 'primary',
+          icon: MoreFilled,
+        },
+      ],
+      currentPageList : [
+        {
+          content: 'Custom icon',
+          timestamp: '2018-04-12 20:46',
+          size: 'large',
+          type: 'primary',
+          icon: MoreFilled,
+        },
+      ],
+
+        current_page: ref(1),
         progress:progress,
         ThreeEngine: null,
         train_config: {
@@ -280,14 +275,59 @@ export default {
       };
     },
     mounted() {
+      getTrainingDataList(this.current_page.value, 10).then(response => {
+        console.log(response);
+        this.list_total_count =  response.data.total_count
+        this.trainList = []
+        response.data.data.forEach(item => {
+          // let obj = {
+          //   content: '训练id'+item.id,
+          //   timestamp: item.datetime,
+          //   size: 'large',
+          // }
+          item.content = '训练id'+item.id
+          item.timestamp = item.datetime
+          item.size = 'large'
+          // 并存入 trainList 中
+          this.trainList.push(item)
+        })
+    })
+
+
+
+
       this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.train_config,this.train_data,this.progress)
       // this.ThreeEngine.addObject(...allBaseObject)  // 添加基础模型
       // var Airplane = new AirPlane()
       // this.ThreeEngine.addObject(Airplane)  // 添加基础模型
       this.ThreeEngine.addObject(...allLights)  // 添加光线
       this.ThreeEngine.addObject(...allHelper)   // 添加辅助
-      
     },
+  methods: {
+  handleClick(activity) {
+    // 在这里处理点击事件
+    console.log('Clicked on activity:', activity);
+  },
+  onPageChange(page,pageSize){
+    getTrainingDataList(page, pageSize).then(response => {
+        console.log(response);
+        this.list_total_count =  response.data.total_count
+        this.trainList = []
+        response.data.data.forEach(item => {
+          // let obj = {
+          //   content: '训练id'+item.id,
+          //   timestamp: item.datetime,
+          //   size: 'large',
+          // }
+          item.content = '训练id'+item.id
+          item.timestamp = item.datetime
+          item.size = 'large'
+          // 并存入 trainList 中
+          this.trainList.push(item)
+        })
+    })
+  }
+},
 
   }
 
@@ -297,6 +337,20 @@ export default {
 
 
 <style>
+
+.el-timeline-item {
+  cursor: pointer;
+  /* 增加点击 */
+}
+.el-timeline-item:hover {
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); */
+  background-color: #f5f5f5;
+  height: 100%;
+  width: 100%;
+  padding:8px;
+  color: #1890ff;
+
+}
 
 .three-canvas {
   /* background-color: #d6eaff; */
