@@ -103,20 +103,20 @@ const episode_progress= reactive({
       digit: 0,
       up:0,
       down:0,
-      reset: function() {
+      reset: function(down) {
       this.digit = 0;
       this.up = 0;
-      this.down = 0;
+      this.down = down;
     }
     })
 const step_progress= reactive({
       digit: 0,
       up:0,
       down:0,
-      reset: function() {
+      reset: function(down) {
       this.digit = 0;
       this.up = 0;
-      this.down = 0;
+      this.down =down ;
     }
     })
 const isLooping = ref(false)
@@ -316,7 +316,7 @@ export default {
                                               this.episode_progress,
                                               this.step_progress)
       this.ThreeEngine.addObject(...allLights)  // 添加光线
-      this.ThreeEngine.addObject(...allHelper)   // 添加辅助
+      // this.ThreeEngine.addObject(...allHelper)   // 添加辅助
     })
 
 
@@ -364,6 +364,8 @@ export default {
       // this.threeEngine.handlePropChange(newVal, oldVal);
       console.log(`myProp changed from ${oldVal} to ${newVal}`);
       this.ThreeEngine.resetUAVUser(this.selectedTrainData.config,this.selectedTrainData.data[0])
+      episode_progress.reset(this.selectedTrainData.data.length)
+      step_progress.reset(this.selectedTrainData.data[0].num_step)
       // this.ThreeEngine.resetEventListener(this.ThreeEngine.dom,this.selectedTrainData.data,episode_progress,step_progress)
       // this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.selectedTrainData.config,this.selectedTrainData.data,
       //                                         this.episode_progress,

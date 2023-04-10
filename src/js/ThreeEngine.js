@@ -40,6 +40,7 @@ export class ThreeEngine {
     })
     dom.appendChild(renderer.domElement)  // 将渲染器挂载到dom
     renderer.setSize(dom.offsetWidth, dom.offsetHeight, true)
+    renderer.shadowMap.enabled = true;//显示影子
     let scene = new Scene()  // 实例化场景
     // scene = new THREE.Scene();
     scene.background = new THREE.Color(0x8cc7de);
@@ -85,19 +86,16 @@ export class ThreeEngine {
   floorMesh.receiveShadow = true;
   floorMesh.rotation.x = -Math.PI / 2.0;
   floorMesh.position.set(500, 0, 500); // Set the position of the floor mesh
-  scene.add(floorMesh);
+  floorMesh.receiveShadow = true;
 
-    // var airplane = new MyObject.AirPlane();
-    // airplane.scale.set(.25,.25,.25);
-    // airplane.position.y = 50;
-    // scene.add(airplane);
+  scene.add(floorMesh);
 
 
     const texLoader = new THREE.TextureLoader();
     const texture = texLoader.load('public\\resource\\Robot3_lambert2SG_Diffuse.png');// 加载手机mesh另一个颜色贴图
     texture.encoding = THREE.sRGBEncoding; //和渲染器.outputEncoding一样值
-    console.log(t_episodes[0]);
-    this.resetUAVUser(t_cfg,t_episodes[0])
+    // console.log(t_episodes[0]);
+    // this.resetUAVUser(t_cfg,t_episodes[0])
 
 
     // let orbitControls = new OrbitControls(camera, renderer.domElement)//轨道控制器
@@ -136,63 +134,6 @@ export class ThreeEngine {
     // this.labelRenderer.domElement.style.left = '0px';
     this.labelRenderer.domElement.style.pointerEvents = 'none';
     dom.appendChild( this.labelRenderer.domElement );
-
-
-
-
-
-    episode_progress.digit = 0
-    episode_progress.down = t_episodes.length
-    step_progress.digit = 0
-    step_progress.down = t_episodes[0].num_step
-    // dom.removeEventListener('click', this.updatePositions.bind(this, t_episodes, episode_progress, step_progress, 2000, false));
-    // dom.addEventListener('click', this.updatePositions.bind(this, t_episodes,episode_progress,step_progress,2000, false));
-    // this.startSimulate(t_episodes, episode_progress, step_progress);
-
-
-    // dom.addEventListener('click', async () => {
-    //   // 播放动画
-    //   // mixer.clipAction(animation).play();
-    //   // 更新每个无人机的位置
-    //   for (let i = 0; i < t_episodes.length; i++) {
-    //     if (stopExecution) break;
-    //     let episode = t_episodes[i];
-    //     step_progress.down = episode.num_step;
-    //     for (let j = 0; j < episode.step_data.length; j++) {
-    //       if (stopExecution) break;
-    //       let step_data = episode.step_data[j];
-    //       this.uavs.forEach((uav, n) => {
-    //         let next_position = [];
-    //         next_position.push(step_data.state.uav_position[n][0]);
-    //         next_position.push(step_data.state.uav_position[n][1]);
-    //         next_position.push(step_data.state.uav_position[n][2]);
-    
-    //         this.updateEntityPosition(uav, next_position, 1, 2000);
-    //         uav.remove(uav.getObjectByName("label"));
-    //         uav.add(this.tag(uav.name, uav.position));
-    //       });
-    //       this.users.forEach((user, k) => {
-    //         let next_position = [];
-    //         next_position.push(step_data.state.user_position[k][0]);
-    //         next_position.push(step_data.state.user_position[k][1]);
-    //         next_position.push(0);
-    
-    //         this.updateEntityPosition(user, next_position, 1, 2000);
-    //         user.remove(user.getObjectByName("label"));
-    //         user.add(this.tag(user.name, user.position));
-    //       });
-    //       step_progress.up = j + 1;
-    //       step_progress.digit = (step_progress.up / step_progress.down) * 100;
-    //       console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
-
-    //       await new Promise(resolve => setTimeout(resolve, 2000));
-
-    //     }
-    //     episode_progress.up = i + 1;
-    //     episode_progress.digit = (episode_progress.up / episode_progress.down) * 100;
-    //     console.log("episode" + episode_progress.digit);
-    //   }
-    // })
 
 
     // 逐帧渲染threejs
@@ -245,16 +186,15 @@ export class ThreeEngine {
       // 更新每个无人机的位置
       for (let i = 0; i < t_episodes.length; i++) {
         if (!isLooping.value) {
-          episode_progress.reset()
-          step_progress.reset()
+          episode_progress.reset(t_episodes.length)
           break;}
         // console.log(isLooping);
         let episode = t_episodes[i];
         step_progress.down = episode.num_step;
         for (let j = 0; j < episode.step_data.length; j++) {
           if (!isLooping.value) {
-            episode_progress.reset()
-            step_progress.reset()
+            // episode_progress.reset()
+            step_progress.reset(episode.num_step)
             break;}
           console.log(isLooping);
 
@@ -300,6 +240,22 @@ export class ThreeEngine {
     var uav_scale = 1;
     let promises = [];
     
+    // Remove labels from existing UAVs and users
+    this.uavs.forEach(uav => {
+      let label = uav.getObjectByName('label');
+      if (label) {
+        this.scene.remove(label);
+        label.element.parentNode.removeChild(label.element);
+      }
+    });
+    this.users.forEach(user => {
+      let label = user.getObjectByName('label');
+      if (label) {
+        this.scene.remove(label);
+        label.element.parentNode.removeChild(label.element);
+      }
+    });
+
       // Remove existing UAVs and users from the scene
     this.uavs.forEach(uav => this.scene.remove(uav));
     this.users.forEach(user => this.scene.remove(user));
@@ -320,9 +276,14 @@ export class ThreeEngine {
           mesh.position.x = episode.step_data[0].state.uav_position[i ][0];
           mesh.position.y = episode.step_data[0].state.uav_position[i ][2];
           mesh.position.z = episode.step_data[0].state.uav_position[i ][1];
+          mesh.traverse(function (child) {
+            if (child.isMesh || child.isLine || child.isLineSegments) {
+              child.castShadow = true;
+            }
+          });
           this.uavs.push(mesh)
           this.scene.add(mesh);
-          
+          console.log(mesh);
           var label = this.tag(mesh.name,mesh.position);//把名称obj.name作为标签
           mesh.add(label);//标签插入model组对象中
           resolve();
@@ -353,12 +314,19 @@ export class ThreeEngine {
             mesh.position.x = episode.step_data[0].state.user_position[i][0];
             mesh.position.y = 0;
             mesh.position.z = episode.step_data[0].state.user_position[i][1];
+            // mesh.castShadow = true;
+            mesh.traverse(function (child) {
+              if (child.isMesh || child.isLine || child.isLineSegments) {
+                child.castShadow = true;
+              }
+            });
+
             this.users.push(mesh)
             var label = this.tag(mesh.name,mesh.position);//
             mesh.add(label);//标签插入model组对象中
-            console.log(label);
+            // console.log(label);
             this.scene.add(mesh);
-            console.log(mesh);
+            // console.log(mesh);
             resolve();
           }, undefined, function(error) {
             console.error(error);
@@ -418,7 +386,7 @@ export class ThreeEngine {
       // 创建div元素(作为标签)
       var div = document.createElement('div');
       // var content = name +'<br>' +'(' + position.x + ',' + position.y + ',' + position.z + ')'
-var content = name + '<br>' + '(' + position.x.toFixed(2) + ',' + position.y.toFixed(2) + ',' + position.z.toFixed(2) + ')';
+      var content = name + '<br>' + '(' + position.x.toFixed(2) + ',' + position.y.toFixed(2) + ',' + position.z.toFixed(2) + ')';
 
       div.innerHTML = content;
       div.style.padding = '0px 4px';
