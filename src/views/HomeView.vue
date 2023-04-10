@@ -61,7 +61,13 @@
             <a-card class="card progress" hoverable  style="width: 300px">
               <a-progress :percent="episode_progress.digit" :format="()=> episode_progress.up+'/'+episode_progress.down" status="active" />
               <a-progress :percent="step_progress.digit" :format="()=> step_progress.up+'/'+step_progress.down" status="active" />
-
+              <!-- <a-button  :loading="isLooping" @click="toggleLoop" type="buttonType">启动仿真</a-button> -->
+              <el-switch
+              v-model="isLooping"
+              active-text="正在仿真"
+              inactive-text="停止仿真"
+            />
+            
             </a-card>
 
           </div>
@@ -96,16 +102,29 @@ import { getTrainingDataList,getTrainingDataById } from '../js/api'
 const episode_progress= reactive({
       digit: 0,
       up:0,
-      down:0
+      down:0,
+      reset: function() {
+      this.digit = 0;
+      this.up = 0;
+      this.down = 0;
+    }
     })
 const step_progress= reactive({
       digit: 0,
       up:0,
-      down:0
+      down:0,
+      reset: function() {
+      this.digit = 0;
+      this.up = 0;
+      this.down = 0;
+    }
     })
+const isLooping = ref(false)
+export { isLooping };
 export default {
     data() {
       return {
+        isLooping : isLooping,
         list_total_count:0,
         trainList : [
         {
@@ -280,20 +299,15 @@ export default {
         this.list_total_count =  response.data.total_count
         this.trainList = []
         response.data.data.forEach(item => {
-          // let obj = {
-          //   content: '训练id'+item.id,
-          //   timestamp: item.datetime,
-          //   size: 'large',
-          // }
           item.content = '训练id'+item.id
           item.timestamp = item.datetime
           item.size = 'large'
           // 并存入 trainList 中
           this.trainList.push(item)
-          this.selectedTrainData = item
+          // this.selectedTrainData = item
           // console.log(item);
-          
         })
+        this.handleClick(response.data.data[0],0)
       // console.log(this.selectedTrainData.data[0]);
       // console.dir(this.selectedTrainData);
       // console.log(JSON.stringify(this.selectedTrainData));
@@ -342,9 +356,32 @@ export default {
           this.trainList.push(item)
         })
     })
-  }
+  },
 },
+  watch: {
+    selectedTrainData(newVal, oldVal) {
+      // 在这里调用 ThreeEngine 类的方法来处理属性变化
+      // this.threeEngine.handlePropChange(newVal, oldVal);
+      console.log(`myProp changed from ${oldVal} to ${newVal}`);
+      this.ThreeEngine.resetUAVUser(this.selectedTrainData.config,this.selectedTrainData.data[0])
+      // this.ThreeEngine.resetEventListener(this.ThreeEngine.dom,this.selectedTrainData.data,episode_progress,step_progress)
+      // this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.selectedTrainData.config,this.selectedTrainData.data,
+      //                                         this.episode_progress,
+      //                                         this.step_progress)
+      // this.ThreeEngine.addObject(...allLights)  // 添加光线
+      // this.ThreeEngine.addObject(...allHelper)   // 添加辅助
+      
+    },
+    isLooping(newVal,oldVal){
+      // console.log(isLooping.value);
+      // console.log(`myProp changed from ${oldVal} to ${newVal}`);
 
+      if (isLooping.value) {
+        this.ThreeEngine.startSimulate(this.selectedTrainData.data, episode_progress, step_progress);
+    }
+
+    }
+  },
   }
 
 
