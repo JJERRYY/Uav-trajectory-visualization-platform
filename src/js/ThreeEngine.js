@@ -344,7 +344,7 @@ export class ThreeEngine {
     step_progress.digit = 0;
     step_progress.up = 0;
     step_progress.down = t_episodes[0].num_step;
-    this.updatePositions( t_episodes, episode_progress, step_progress, 2000)
+    this.updatePositions( t_episodes, episode_progress, step_progress, 500)
     // dom.removeEventListener('click', this.updatePositions.bind(this, t_episodes, episode_progress, step_progress, 2000));
     // dom.addEventListener('click', this.updatePositions.bind(this, t_episodes,episode_progress,step_progress,2000));
 }

@@ -2,33 +2,28 @@
   <div class="common-layout">
     <el-container class="common-layout">
       <el-header >
-        <el-menu
-    :default-active="activeIndex"
-    class="el-menu-demo"
-    mode="horizontal"
-    :ellipsis="false"
-    @select="handleSelect"
-  >
-    <!-- <el-menu-item index="0"> -->
-    <img cover :height="50" 
-    src="src/res/Simulation platform.png" alt="Simulation platform">
-
-    <!-- </el-menu-item> -->
-    <div class="flex-grow" />
-    <el-menu-item index="1">训练可视化</el-menu-item>
-    <el-menu-item index="2">实时训练</el-menu-item>
-    <el-sub-menu index="3">
+      <el-menu
+      :default-active="activeIndex"
+      class="el-menu-demo"
+      mode="horizontal"
+      :ellipsis="false"
+      @select="handleSelect"
+      >
+      <img cover :height="50" src="src/res/Simulation platform.png" alt="Simulation platform" />
+      <div class="flex-grow" />
+      <el-menu-item index="1">训练可视化</el-menu-item>
+      <el-menu-item index="2">实时训练</el-menu-item>
+      <el-sub-menu index="3">
       <template #title>数据统计</template>
       <el-menu-item index="3-1">item one</el-menu-item>
       <el-menu-item index="3-2">item two</el-menu-item>
       <el-menu-item index="3-3">item three</el-menu-item>
-    </el-sub-menu>
-
-        </el-menu>
+      </el-sub-menu>
+      </el-menu>
       </el-header>
       <el-container class="common-layout">
-        <el-aside width="250px">
-          
+        <el-container v-show="currentPage === 'trainingVisualization'">
+          <el-aside width="250px">
           <el-card shadow="always" class="list-card">
               <el-timeline class="component">
                 <!-- <el-scrollbar class="scrollbar"> -->
@@ -67,12 +62,30 @@
               active-text="正在仿真"
               inactive-text="停止仿真"
             />
-            
             </a-card>
-
           </div>
         </el-main>
+        </el-container>
+        <el-container class="common-layout" v-show="currentPage === 'realTimeTraining'">
+          <el-main class="common-layout ">
+          <div class="canvas-wrapper">
+            <div class="three-canvas common-layout" ref="threeRealTimeTraining"></div>
+
+            <a-card class="card progress" hoverable  style="width: 300px">
+              <a-progress :percent="episode_progress.digit" :format="()=> episode_progress.up+'/'+episode_progress.down" status="active" />
+              <a-progress :percent="step_progress.digit" :format="()=> step_progress.up+'/'+step_progress.down" status="active" />
+              <!-- <a-button  :loading="isLooping" @click="toggleLoop" type="buttonType">启动仿真</a-button> -->
+              <el-switch
+              v-model="isLooping"
+              active-text="正在仿真"
+              inactive-text="停止仿真"
+            />
+            </a-card>
+          </div>
+        </el-main>
+        </el-container >
       </el-container>
+
     </el-container>
   </div>
 </template>
@@ -83,11 +96,6 @@ import { MoreFilled } from '@element-plus/icons-vue'
 
 
 const activeIndex = ref('1')
-
-const handleSelect = (key: string, keyPath: string[]) => {
-  console.log(key, keyPath)
-}
-
 
 </script>
 
@@ -120,6 +128,11 @@ const step_progress= reactive({
     }
     })
 const isLooping = ref(false)
+const currentPage=ref('trainingVisualization')
+
+
+
+
 export { isLooping };
 export default {
     data() {
@@ -322,6 +335,21 @@ export default {
 
     },
   methods: {
+    handleSelect (key: string, keyPath: string[]){
+  // console.log(key, keyPath)
+  console.log("点击"+key);
+  
+
+  if (key === '1') {
+    currentPage.value = 'trainingVisualization';
+
+  } else if (key === '2') {
+    currentPage.value = 'realTimeTraining';
+  } else if (key.startsWith('3')) {
+    currentPage.value = 'dataStatistics';
+  }
+
+},
   handleClick(activity,index) {
     // console.log('Clicked on activity:', activity);
     // 把this.trainList中当前index的item.hollow设成true 其他设成false
@@ -336,6 +364,7 @@ export default {
       item.type = null 
     }
   });
+  isLooping.value=false
   },
   onPageChange(page,pageSize){
     getTrainingDataList(page, pageSize).then(response => {
@@ -380,7 +409,7 @@ export default {
 
       if (isLooping.value) {
         this.ThreeEngine.startSimulate(this.selectedTrainData.data, episode_progress, step_progress);
-    }
+    } 
 
     }
   },
@@ -418,8 +447,8 @@ export default {
   background: linear-gradient(#e4e0ba, #f7d9aa);
 
   z-index: 1;
-
 }
+
 
 .common-layout {
   height: 100%;
