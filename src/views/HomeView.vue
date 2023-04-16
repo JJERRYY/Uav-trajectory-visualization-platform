@@ -63,6 +63,14 @@
               inactive-text="停止仿真"
             />
             </a-card>
+
+            <div class="config-wrapper card" hoverable  style="width: 300px">
+              <el-table :data="tableData" border style="width: 100%">
+                <el-table-column prop="parameter" label="超参数" width="180" />
+                <el-table-column prop="value" label="数值" width="180" />
+                <!-- <el-table-column prop="address" label="Address" /> -->
+              </el-table>
+            </div>
           </div>
         </el-main>
         </el-container>
@@ -72,11 +80,11 @@
             <div class="three-canvas common-layout" ref="threeRealTimeTraining"></div>
 
             <a-card class="card progress" hoverable  style="width: 300px">
-              <a-progress :percent="episode_progress.digit" :format="()=> episode_progress.up+'/'+episode_progress.down" status="active" />
+              <!-- <a-progress :percent="episode_progress.digit" :format="()=> episode_progress.up+'/'+episode_progress.down" status="active" /> -->
               <a-progress :percent="step_progress.digit" :format="()=> step_progress.up+'/'+step_progress.down" status="active" />
               <!-- <a-button  :loading="isLooping" @click="toggleLoop" type="buttonType">启动仿真</a-button> -->
               <el-switch
-              v-model="isLooping"
+              v-model="isSyncing"
               active-text="正在仿真"
               inactive-text="停止仿真"
             />
@@ -128,10 +136,10 @@ const step_progress= reactive({
     }
     })
 const isLooping = ref(false)
-const currentPage=ref('trainingVisualization')
+const currentPage=ref('trainingVisualization');
 
 
-
+const tableData = [];
 
 export { isLooping };
 export default {
@@ -395,6 +403,20 @@ export default {
       this.ThreeEngine.resetUAVUser(this.selectedTrainData.config,this.selectedTrainData.data[0])
       episode_progress.reset(this.selectedTrainData.data.length)
       step_progress.reset(this.selectedTrainData.data[0].num_step)
+
+    console.log(this.selectedTrainData.config);
+    
+    // 遍历config，将config的属性名作为 parameter，属性值做为value，构造一个字典，依次压入this.tableData中
+    for (let key in this.selectedTrainData.config) {
+  let parameter = key;
+  let value = this.selectedTrainData.config[key];
+  tableData.push({parameter: parameter, value: value});
+}
+console.log(tableData);
+
+
+
+
       // this.ThreeEngine.resetEventListener(this.ThreeEngine.dom,this.selectedTrainData.data,episode_progress,step_progress)
       // this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.selectedTrainData.config,this.selectedTrainData.data,
       //                                         this.episode_progress,
@@ -435,6 +457,8 @@ export default {
   color: #1890ff;
 
 }
+
+
 
 .three-canvas {
   /* background-color: #d6eaff; */
@@ -481,6 +505,15 @@ export default {
   left: 0;
   z-index: 2;
 }
+
+.config-wrapper{
+  position: absolute;
+  top: 100;
+  left: 0;
+  z-index: 2;
+  
+}
+
 
 .card {
   opacity: .5;
