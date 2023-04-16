@@ -65,8 +65,8 @@
             </a-card>
 
             <div class="config-wrapper card" hoverable  style="width: 300px">
-              <el-table :data="tableData" border style="width: 100%">
-                <el-table-column prop="parameter" label="超参数" width="180" />
+              <el-table :data="tableData" fit show-header=false border style="width: 100%"  max-height="200">
+                <el-table-column width="120"  prop="parameter" label="超参数" />
                 <el-table-column prop="value" label="数值" width="180" />
                 <!-- <el-table-column prop="address" label="Address" /> -->
               </el-table>
@@ -139,12 +139,12 @@ const isLooping = ref(false)
 const currentPage=ref('trainingVisualization');
 
 
-const tableData = [];
 
 export { isLooping };
 export default {
     data() {
       return {
+        tableData :[],
         isLooping : isLooping,
         list_total_count:0,
         trainList : [
@@ -366,7 +366,7 @@ export default {
     if (i === index) {
       item.hollow = true;
       item.type= 'primary'
-      console.log(item);
+      // console.log(item);
     } else {
       item.hollow = false;
       item.type = null 
@@ -376,7 +376,7 @@ export default {
   },
   onPageChange(page,pageSize){
     getTrainingDataList(page, pageSize).then(response => {
-        console.log(response);
+        // console.log(response);
         this.list_total_count =  response.data.total_count
         this.trainList = []
         response.data.data.forEach(item => {
@@ -404,15 +404,16 @@ export default {
       episode_progress.reset(this.selectedTrainData.data.length)
       step_progress.reset(this.selectedTrainData.data[0].num_step)
 
-    console.log(this.selectedTrainData.config);
+    // console.log(this.selectedTrainData.config);
     
     // 遍历config，将config的属性名作为 parameter，属性值做为value，构造一个字典，依次压入this.tableData中
+    this.tableData=[]
     for (let key in this.selectedTrainData.config) {
-  let parameter = key;
-  let value = this.selectedTrainData.config[key];
-  tableData.push({parameter: parameter, value: value});
-}
-console.log(tableData);
+      let parameter = key;
+      let value = this.selectedTrainData.config[key];
+      this.tableData.push({parameter: parameter, value: value});
+    }
+    console.log(this.tableData.values);
 
 
 
