@@ -281,7 +281,7 @@ export default {
         console.log("开始同步");
         
       }else{
-       
+        this.socket.close();
         ///停止运动
       }
 
