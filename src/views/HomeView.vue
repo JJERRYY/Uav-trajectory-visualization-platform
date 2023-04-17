@@ -13,12 +13,14 @@
       <div class="flex-grow" />
       <el-menu-item index="1">训练可视化</el-menu-item>
       <el-menu-item index="2">实时训练</el-menu-item>
-      <el-sub-menu index="3">
-      <template #title>数据统计</template>
+      <el-menu-item index="3">实时训练</el-menu-item>
+
+      <!-- <el-sub-menu index="3"> -->
+      <!-- <template #title>数据统计</template>
       <el-menu-item index="3-1">item one</el-menu-item>
       <el-menu-item index="3-2">item two</el-menu-item>
       <el-menu-item index="3-3">item three</el-menu-item>
-      </el-sub-menu>
+      </el-sub-menu> -->
       </el-menu>
       </el-header>
       <el-container class="common-layout">
@@ -65,9 +67,9 @@
             </a-card>
 
             <div class="config-wrapper card" hoverable  style="width: 300px">
-              <el-table :data="tableData" fit show-header=false border style="width: 100%"  max-height="200">
-                <el-table-column width="120"  prop="parameter" label="超参数" />
-                <el-table-column prop="value" label="数值" width="180" />
+              <el-table :data="tableData" fit show-header="false" border style="width: 100%"  max-height="200">
+                <el-table-column width="120"   prop="parameter" label="超参数" />
+                <el-table-column prop="value"  label="数值" width="180" />
                 <!-- <el-table-column prop="address" label="Address" /> -->
               </el-table>
             </div>
@@ -83,10 +85,15 @@
               <!-- <a-progress :percent="episode_progress.digit" :format="()=> episode_progress.up+'/'+episode_progress.down" status="active" /> -->
               <a-progress :percent="step_progress.digit" :format="()=> step_progress.up+'/'+step_progress.down" status="active" />
               <!-- <a-button  :loading="isLooping" @click="toggleLoop" type="buttonType">启动仿真</a-button> -->
+
+              <div class="status-container">
+                <span>服务器连接状态:</span>
+                <div class="status-dot" :class="{ 'connected': isConnected }"></div>
+              </div>
               <el-switch
               v-model="isSyncing"
-              active-text="正在仿真"
-              inactive-text="停止仿真"
+              active-text="正在监听"
+              inactive-text="停止监听"
             />
             </a-card>
           </div>
@@ -136,14 +143,16 @@ const step_progress= reactive({
     }
     })
 const isLooping = ref(false)
+const isSyncing = ref(false)
 const currentPage=ref('trainingVisualization');
-
-
 
 export { isLooping };
 export default {
     data() {
       return {
+        socket:  null,
+        isSyncing:isSyncing,
+        isConnected: false,
         tableData :[],
         isLooping : isLooping,
         list_total_count:0,
@@ -160,158 +169,8 @@ export default {
         episode_progress:episode_progress,
         step_progress:step_progress,
         ThreeEngine: null,
+        ThreeRealTimeEngine:null,
         selectedTrainData:null,
-        
-      //   train_config: {
-      //       actor_lr: 0,
-      //       critic_lr: 0,
-      //       num_episodes: 0,
-      //       num_steps: 0,
-      //       gamma: 0,
-      //       hidden_dim: 0,
-      //       tau: 0,
-      //       buffer_size: 0,
-      //       minimal_size: 0,
-      //       batch_size: 0,
-      //       sigma: 0,
-      //       num_uavs: 2,
-      //       num_users: 2,
-      //       env_name: "string"
-      // },
-      // train_data: [
-      //   {
-      //     episode_id: 0,
-      //     state: {
-      //       uav_position: [
-      //           54,
-      //           100,
-      //           120,
-      //           100,
-      //           100,
-      //           115
-      //       ],
-      //       user_position: [
-      //           54,
-      //           110,
-      //           100,
-      //           115,
-      //       ],
-      //       user_rate: "string"
-      //     },
-      //     action: {
-      //       uav_direction_distance: "string",
-      //       uav_power: "string",
-      //       uav_association: "string"
-      //     },
-      //     reward: 0,
-      //     next_state: {
-      //       uav_position: [
-      //           60,
-      //           110,
-      //           120,
-      //           95,
-      //           90,
-      //           115
-      //       ],
-      //       user_position: [
-      //           52,
-      //           112,
-      //           102,
-      //           125,
-      //       ],
-      //       user_rate: "string"
-      //     },
-      //     done: true
-      //   },        
-      //   {
-      //     episode_id: 1,
-      //     state: {
-      //       uav_position: [
-      //           60,
-      //           110,
-      //           120,
-      //           95,
-      //           90,
-      //           115
-      //       ],
-      //       user_position: [
-      //           52,
-      //           112,
-      //           102,
-      //           125,
-      //       ],
-      //       user_rate: "string"
-      //     },
-      //     action: {
-      //       uav_direction_distance: "string",
-      //       uav_power: "string",
-      //       uav_association: "string"
-      //     },
-      //     reward: 0,
-      //     next_state: {
-      //       uav_position: [
-      //           65,
-      //           114,
-      //           120,
-      //           95,
-      //           90,
-      //           115
-      //       ],
-      //       user_position: [
-      //           55,
-      //           107,
-      //           100,
-      //           120,
-      //       ],
-      //       user_rate: "string"
-      //     },
-      //     done: true
-      //   },
-      //   {
-      //     episode_id: 2,
-      //     state: {
-      //       uav_position: [
-      //           65,
-      //           125,
-      //           120,
-      //           45,
-      //           105,
-      //           115
-      //       ],
-      //       user_position: [
-      //           65,
-      //           179,
-      //           122,
-      //           15,
-      //       ],
-      //       user_rate: "string"
-      //     },
-      //     action: {
-      //       uav_direction_distance: "string",
-      //       uav_power: "string",
-      //       uav_association: "string"
-      //     },
-      //     reward: 0,
-      //     next_state: {
-      //       uav_position: [
-      //           65,
-      //           114,
-      //           120,
-      //           95,
-      //           90,
-      //           115
-      //       ],
-      //       user_position: [
-      //           55,
-      //           107,
-      //           100,
-      //           120,
-      //       ],
-      //       user_rate: "string"
-      //     },
-      //     done: true
-      //   },
-      // ],
       };
     },
     mounted() {
@@ -341,8 +200,28 @@ export default {
     })
 
 
+
     },
   methods: {
+    createWebSocket(url) {
+    const socket = new WebSocket(url);
+
+    socket.addEventListener('open', (event) => {
+      this.isConnected = true;
+      console.log('WebSocket is open now.');
+    });
+    socket.addEventListener('message', (event) => {
+      console.log('Message from server:', event.data);
+    });
+    socket.addEventListener('close', (event) => {
+      this.isConnected = false;
+      console.log('WebSocket is closed now.');
+    });
+
+  return socket;
+},
+
+
     handleSelect (key: string, keyPath: string[]){
   // console.log(key, keyPath)
   console.log("点击"+key);
@@ -396,6 +275,32 @@ export default {
   },
 },
   watch: {
+    isSyncing(newVal,oldVal){
+      if(isSyncing.value){
+        this.socket = this.createWebSocket('ws://127.0.0.1:8765')
+        console.log("开始同步");
+        
+      }else{
+       
+        ///停止运动
+      }
+
+    },
+    currentPage(newVal,oldVal){
+      //翻页到仿真时
+      if(newVal.value ==='realTimeTraining'){
+        this.ThreeRealTimeEngine = new ThreeRealTimeEngine(this.$refs.threeRealTimeTraining)
+        // this.ThreeEngine
+
+        console.log("realTimeTraining");
+        
+      }else{
+        isSyncing.value = false;
+        this.isConnected = false;
+      }
+
+
+    },
     selectedTrainData(newVal, oldVal) {
       // 在这里调用 ThreeEngine 类的方法来处理属性变化
       // this.threeEngine.handlePropChange(newVal, oldVal);
@@ -432,7 +337,7 @@ export default {
 
       if (isLooping.value) {
         this.ThreeEngine.startSimulate(this.selectedTrainData.data, episode_progress, step_progress);
-    } 
+    }
 
     }
   },
@@ -444,6 +349,23 @@ export default {
 
 
 <style>
+.status-container {
+  display: flex;
+  align-items: center;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: black;
+  margin-left: 5px;
+}
+
+.status-dot.connected {
+  background-color: green;
+}
+
 
 .el-timeline-item {
   cursor: pointer;
