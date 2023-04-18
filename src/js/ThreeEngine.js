@@ -57,7 +57,7 @@ export class ThreeEngine {
 
     camera.updateProjectionMatrix(); // 更新相机的投影矩阵
 
-    console.log(camera);
+    // console.log(camera);
     const clock = new THREE.Clock();
     this.dom = dom
     this.scene = scene
@@ -175,20 +175,29 @@ export class ThreeEngine {
 
     // 计算物体和射线的焦点
     const intersects = this.raycaster.intersectObjects( scene.children );
-    console.log(intersects)
+    // console.log(intersects)
     for ( let i = 0; i < intersects.length; i ++ ) {
       // intersects[ i ].object.material.color.set( 0xff0000 );
     }
 
   }
-  async updatePositions(t_episodes,episode_progress,step_progress,duration ) {
+  async updatePositions(t_episodes,episode_progress,step_progress,duration,stateTableData ) {
     // 播放动画
     // mixer.clipAction(animation).play();
     // 更新每个无人机的位置
+    let stateTableDataIndex = {};
+    stateTableData.forEach((data, index) => {
+        stateTableDataIndex[data.state] = index;
+    });
     for (let i = 0; i < t_episodes.length; i++) {
       if (!isLooping.value) {
         episode_progress.reset(t_episodes.length)
         break;}
+
+        let index = stateTableDataIndex["累计奖励"];
+        if (index !== undefined) {
+            stateTableData[index].value = 0;
+        }
       // console.log(isLooping);
       let episode = t_episodes[i];
       step_progress.down = episode.num_step;
@@ -197,7 +206,8 @@ export class ThreeEngine {
           // episode_progress.reset()
           step_progress.reset(episode.num_step)
           break;}
-        console.log(isLooping);
+        // console.log(isLooping);
+
 
         let step_data = episode.step_data[j];
         this.uavs.forEach((uav, n) => {
@@ -209,6 +219,33 @@ export class ThreeEngine {
           this.updateEntityPosition(uav, next_position, 1, duration);
           uav.remove(uav.getObjectByName("label"));
           uav.add(this.tag(uav.name, uav.position));
+          // 在stateTableData字典中找到state为uav.name+'连接的用户' 并将他的value改为step_data.action.uav_association[i]
+          // 在stateTableData字典中找到state为uav.name+'发射功率' 并将他的value改为step_data.action.uav_power[0][i]
+          // 更新 stateTableData 数组中的元素
+          let state1 = uav.name + '连接的用户';
+          let index1 = stateTableDataIndex[state1];
+          // console.log(step_data.action);
+          // console.log(index1);
+          if (index1 !== undefined) {
+              stateTableData[index1].value = step_data.action.uav_association[i];
+          }
+
+          let state2 = uav.name + '发射功率';
+          let index2 = stateTableDataIndex[state2];
+          if (index2 !== undefined) {
+              stateTableData[index2].value = step_data.action.uav_power[0][i];
+          }
+          // stateTableData.push({
+          //   state: mesh.name+'连接的用户',
+          //   value: episode.step_data[0].action.uav_association[i]
+          // });
+          // stateTableData.push({
+          //   state: mesh.name+'发射功率',
+          //   value: episode.step_data[0].action.uav_power[0][i]
+          // });
+
+
+
         });
         this.users.forEach((user, k) => {
           let next_position = [];
@@ -220,26 +257,40 @@ export class ThreeEngine {
           user.remove(user.getObjectByName("label"));
           user.add(this.tag(user.name, user.position));
         });
+        let index = stateTableDataIndex["累计奖励"];
+        if (index !== undefined) {
+            stateTableData[index].value += step_data.reward;
+        }
+
+
         step_progress.up = j + 1;
         step_progress.digit = (step_progress.up / step_progress.down) * 100;
-        console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
+        // console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
   
         await new Promise(resolve => setTimeout(resolve, duration));
-  
+        
       }
       episode_progress.up = i + 1;
       episode_progress.digit = (episode_progress.up / episode_progress.down) * 100;
-      console.log("episode" + episode_progress.digit);
+      // console.log("episode" + episode_progress.digit);
     }
   }
 
 
-  resetUAVUser(t_cfg,episode){
+  resetUAVUser(t_cfg,episode,stateTableData){
+    stateTableData.splice(0)
+    // stateTableData
+    console.log(stateTableData);
+
     const loader = new GLTFLoader();
     var uav_num = t_cfg.num_uavs;
     var user_num = t_cfg.num_users;
     var uav_scale = 1;
     let promises = [];
+    stateTableData.push({
+      state: "累计奖励",
+      value: 0
+    });
     
     // Remove labels from existing UAVs and users
     this.uavs.forEach(uav => {
@@ -263,6 +314,7 @@ export class ThreeEngine {
     this.uavs = [];
     this.users = [];
 
+
     for (let i = 0; i < uav_num; i++) {
       let promise = new Promise((resolve, reject) => {
         loader.load('public/resource/uav_fly.glb', (gltf)=> {
@@ -284,9 +336,18 @@ export class ThreeEngine {
           });
           this.uavs.push(mesh)
           this.scene.add(mesh);
-          console.log(mesh);
+          // console.log(mesh);
+          
+          stateTableData.push({
+            state: mesh.name+'连接的用户',
+            value: episode.step_data[0].action.uav_association[i]
+          });
+          stateTableData.push({
+            state: mesh.name+'发射功率',
+            value: episode.step_data[0].action.uav_power[0][i]
+          });
           var label = this.tag(mesh.name,mesh.position);//把名称obj.name作为标签
-          mesh.add(label);//标签插入model组对象中
+          // mesh.add(label);//标签插入model组对象中
           resolve();
         }, undefined, function(error) {
           console.error(error);
@@ -322,9 +383,14 @@ export class ThreeEngine {
               }
             });
 
+            // stateTableData.push({
+            //   state: mesh.name,
+            //   value: `(${mesh.position.x},${mesh.position.z})`
+            // });
+
             this.users.push(mesh)
-            var label = this.tag(mesh.name,mesh.position);//
-            mesh.add(label);//标签插入model组对象中
+            // var label = this.tag(mesh.name,mesh.position);//
+            // mesh.add(label);//标签插入model组对象中
             // console.log(label);
             this.scene.add(mesh);
             // console.log(mesh);
@@ -337,15 +403,15 @@ export class ThreeEngine {
     }
   }
 
-  startSimulate( t_episodes, episode_progress, step_progress) {
-    console.log(t_episodes);
+  startSimulate( t_episodes, episode_progress, step_progress,stateTableData) {
+    // console.log(t_episodes);
     episode_progress.digit = 0;
     episode_progress.up=0
     episode_progress.down = t_episodes.length;
     step_progress.digit = 0;
     step_progress.up = 0;
     step_progress.down = t_episodes[0].num_step;
-    this.updatePositions( t_episodes, episode_progress, step_progress, 500)
+    this.updatePositions( t_episodes, episode_progress, step_progress, 500,stateTableData)
     // dom.removeEventListener('click', this.updatePositions.bind(this, t_episodes, episode_progress, step_progress, 2000));
     // dom.addEventListener('click', this.updatePositions.bind(this, t_episodes,episode_progress,step_progress,2000));
 }
@@ -429,7 +495,7 @@ export class ThreeRealTimeEngine {
       antialias: true,  // 开启抗锯齿
     })
     dom.appendChild(renderer.domElement)  // 将渲染器挂载到dom
-    console.log(dom);
+    // console.log(dom);
     renderer.setSize(dom.offsetWidth, dom.offsetHeight, true)
     renderer.shadowMap.enabled = true;//显示影子
     let scene = new Scene()  // 实例化场景
@@ -447,7 +513,7 @@ export class ThreeRealTimeEngine {
 
     camera.updateProjectionMatrix(); // 更新相机的投影矩阵
 
-    console.log(camera);
+    // console.log(camera);
     const clock = new THREE.Clock();
     this.dom = dom
     this.scene = scene
@@ -541,7 +607,7 @@ export class ThreeRealTimeEngine {
 
     // 计算物体和射线的焦点
     const intersects = this.raycaster.intersectObjects( scene.children );
-    console.log(intersects)
+    // console.log(intersects)
     for ( let i = 0; i < intersects.length; i ++ ) {
       // intersects[ i ].object.material.color.set( 0xff0000 );
     }
@@ -588,14 +654,14 @@ export class ThreeRealTimeEngine {
         });
         step_progress.up = j + 1;
         step_progress.digit = (step_progress.up / step_progress.down) * 100;
-        console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
+        // console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
   
         await new Promise(resolve => setTimeout(resolve, duration));
       }
       episode_progress.down = t_episodes.length;
       episode_progress.up = i + 1;
       episode_progress.digit = (episode_progress.up / episode_progress.down) * 100;
-      console.log("episode" + episode_progress.digit);
+      // console.log("episode" + episode_progress.digit);
     }
   }
 
@@ -650,7 +716,7 @@ export class ThreeRealTimeEngine {
           });
           this.uavs.push(mesh)
           this.scene.add(mesh);
-          console.log(mesh);
+          // console.log(mesh);
           var label = this.tag(mesh.name,mesh.position);//把名称obj.name作为标签
           mesh.add(label);//标签插入model组对象中
           resolve();

@@ -153,10 +153,12 @@ export default {
     if (event.code === 1000) {
       // 正常关闭
       this.realTimeEpisodes=[]
+      this.isConnected = false;
       console.log("正常关闭，清空realTimeEpisodes");
       
     } else {
       // 非正常关闭
+      this.isConnected = false;
       setTimeout(this.createWebSocket('ws://127.0.0.1:8765'), 1000);
     }
     };
