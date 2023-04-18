@@ -13,14 +13,8 @@
       <div class="flex-grow" />
       <el-menu-item index="1">训练可视化</el-menu-item>
       <el-menu-item index="2">实时训练</el-menu-item>
-      <el-menu-item index="3">实时训练</el-menu-item>
+      <el-menu-item index="3">数据统计</el-menu-item>
 
-      <!-- <el-sub-menu index="3"> -->
-      <!-- <template #title>数据统计</template>
-      <el-menu-item index="3-1">item one</el-menu-item>
-      <el-menu-item index="3-2">item two</el-menu-item>
-      <el-menu-item index="3-3">item three</el-menu-item>
-      </el-sub-menu> -->
       </el-menu>
       </el-header>
       <el-container class="common-layout">
@@ -67,7 +61,7 @@
             </a-card>
 
             <div class="config-wrapper card" hoverable  style="width: 300px">
-              <el-table :data="tableData" fit show-header="false" border style="width: 100%"  max-height="200">
+              <el-table :data="tableData" fit border style="width: 100%"  max-height="200">
                 <el-table-column width="120"   prop="parameter" label="超参数" />
                 <el-table-column prop="value"  label="数值" width="180" />
                 <!-- <el-table-column prop="address" label="Address" /> -->
@@ -76,29 +70,7 @@
           </div>
         </el-main>
         </el-container>
-        <el-container class="common-layout" v-show="currentPage === 'realTimeTraining'">
-          <el-main class="common-layout ">
-          <div class="canvas-wrapper">
-            <div class="three-canvas common-layout" ref="threeRealTimeTraining"></div>
 
-            <a-card class="card progress" hoverable  style="width: 300px">
-              <!-- <a-progress :percent="episode_progress.digit" :format="()=> episode_progress.up+'/'+episode_progress.down" status="active" /> -->
-              <a-progress :percent="step_progress.digit" :format="()=> step_progress.up+'/'+step_progress.down" status="active" />
-              <!-- <a-button  :loading="isLooping" @click="toggleLoop" type="buttonType">启动仿真</a-button> -->
-
-              <div class="status-container">
-                <span>服务器连接状态:</span>
-                <div class="status-dot" :class="{ 'connected': isConnected }"></div>
-              </div>
-              <el-switch
-              v-model="isSyncing"
-              active-text="正在监听"
-              inactive-text="停止监听"
-            />
-            </a-card>
-          </div>
-        </el-main>
-        </el-container >
       </el-container>
 
     </el-container>
@@ -108,15 +80,13 @@
 <script lang="ts" setup>
 import { defineComponent, reactive, ref } from 'vue';
 import { MoreFilled } from '@element-plus/icons-vue'
-
-
 const activeIndex = ref('1')
 
 </script>
 
 <script lang="ts">
 import * as THREE from 'three';
-import { ThreeEngine } from '../js/ThreeEngine';
+import { ThreeEngine,ThreeRealTimeEngine } from '../js/ThreeEngine';
 import { allBaseObject,AirPlane } from '../js/TBaseObject'
 import {allLights} from'../js/TLights'
 import { allHelper } from '../js/THelper'
@@ -145,11 +115,16 @@ const step_progress= reactive({
 const isLooping = ref(false)
 const isSyncing = ref(false)
 const currentPage=ref('trainingVisualization');
+const receivetCount = ref(0)//计算ws收到episode的数量
+
 
 export { isLooping };
 export default {
     data() {
       return {
+        currentPage:currentPage,
+        receivetCount:receivetCount,
+        realTimeEpisodes:[],
         socket:  null,
         isSyncing:isSyncing,
         isConnected: false,
@@ -165,7 +140,7 @@ export default {
           icon: MoreFilled,
         },
       ],
-        current_page: ref(1),
+        current_page: ref(1),//首页的列表页码
         episode_progress:episode_progress,
         step_progress:step_progress,
         ThreeEngine: null,
@@ -191,53 +166,77 @@ export default {
       // console.log(this.selectedTrainData.data[0]);
       // console.dir(this.selectedTrainData);
       // console.log(JSON.stringify(this.selectedTrainData));
-
+      
+      
       this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.selectedTrainData.config,this.selectedTrainData.data,
                                               this.episode_progress,
                                               this.step_progress)
+      // this.ThreeEngine = new ThreeRealTimeEngine(this.$refs.threeRealTimeTarget)
       this.ThreeEngine.addObject(...allLights)  // 添加光线
+      // console.log(this.ThreeEngine);
+      
+
       // this.ThreeEngine.addObject(...allHelper)   // 添加辅助
     })
 
+    // this.ThreeRealTimeEngine = new ThreeRealTimeEngine(this.$refs.threeRealTimeTarget)
+    // this.ThreeRealTimeEngine.addObject(...allLights)
 
 
     },
   methods: {
     createWebSocket(url) {
-    const socket = new WebSocket(url);
+    this.socket = new WebSocket(url);
 
-    socket.addEventListener('open', (event) => {
+    this.socket.onopen = (event) => {
       this.isConnected = true;
       console.log('WebSocket is open now.');
-    });
-    socket.addEventListener('message', (event) => {
-      console.log('Message from server:', event.data);
-    });
-    socket.addEventListener('close', (event) => {
-      this.isConnected = false;
-      console.log('WebSocket is closed now.');
-    });
+      receivetCount.value = 0;
+    };
 
-  return socket;
-},
+    this.socket.onmessage = (event) => {
+      if (event.data != 'ping') {
+        var episode = JSON.parse(event.data);
+        this.realTimeEpisodes.push(episode);
+        receivetCount.value+=1
+        console.log(episode);
+        var uav_num = episode.step_data[0].state['uav_position'].length
+        var user_num = episode.step_data[0].state['user_position'].length
+        console.log("无人机"+uav_num+"user"+user_num);
+        
+      }
+      // console.log('Message from server:', JSON.parse(event.data));
+    };
+
+    this.socket.onclose = (event) => {
+    if (event.code === 1000) {
+      // 正常关闭
+    } else {
+      // 非正常关闭
+      setTimeout(this.createWebSocket('ws://127.0.0.1:8765'), 1000);
+
+    }
+    };
+  },
 
 
-    handleSelect (key: string, keyPath: string[]){
-  // console.log(key, keyPath)
-  console.log("点击"+key);
-  
+  handleSelect (key: string, keyPath: string[]){
+    //处理顶部菜单栏点击
+   // console.log(key, keyPath)
+    console.log("点击"+key);
+    if (key === '1') {
+      currentPage.value = 'trainingVisualization';
+    } else if (key === '2') {
+      this.$router.push('/real-time-training');
 
-  if (key === '1') {
-    currentPage.value = 'trainingVisualization';
 
-  } else if (key === '2') {
-    currentPage.value = 'realTimeTraining';
-  } else if (key.startsWith('3')) {
-    currentPage.value = 'dataStatistics';
-  }
-
-},
+      // currentPage.value = 'realTimeTraining';
+    } else if (key.startsWith('3')) {
+      currentPage.value = 'dataStatistics';
+    }
+  },
   handleClick(activity,index) {
+    //处理首页列表点击
     // console.log('Clicked on activity:', activity);
     // 把this.trainList中当前index的item.hollow设成true 其他设成false
     this.selectedTrainData = activity
@@ -254,6 +253,7 @@ export default {
   isLooping.value=false
   },
   onPageChange(page,pageSize){
+    //第一页左侧翻页时
     getTrainingDataList(page, pageSize).then(response => {
         // console.log(response);
         this.list_total_count =  response.data.total_count
@@ -275,22 +275,35 @@ export default {
   },
 },
   watch: {
+    receivetCount(newVal,oldVal){
+      console.log("receivetCount"+receivetCount.value);
+      
+      if(receivetCount.value ===1){
+        this.ThreeRealTimeEngine.resetUAVUser(this.realTimeEpisodes[0])
+        console.log("第一次接收");
+
+        
+      }
+    },
     isSyncing(newVal,oldVal){
       if(isSyncing.value){
-        this.socket = this.createWebSocket('ws://127.0.0.1:8765')
+        //当点击开始同步按钮时
+        this.createWebSocket('ws://127.0.0.1:8765')
         console.log("开始同步");
         
       }else{
-        this.socket.close();
+        this.socket.close(1000);
         ///停止运动
       }
 
     },
     currentPage(newVal,oldVal){
       //翻页到仿真时
-      if(newVal.value ==='realTimeTraining'){
-        this.ThreeRealTimeEngine = new ThreeRealTimeEngine(this.$refs.threeRealTimeTraining)
-        // this.ThreeEngine
+      if(currentPage.value ==='realTimeTraining'){
+
+        
+
+        // console.log(this.ThreeRealTimeEngine);
 
         console.log("realTimeTraining");
         
@@ -319,19 +332,10 @@ export default {
       this.tableData.push({parameter: parameter, value: value});
     }
     console.log(this.tableData.values);
-
-
-
-
-      // this.ThreeEngine.resetEventListener(this.ThreeEngine.dom,this.selectedTrainData.data,episode_progress,step_progress)
-      // this.ThreeEngine = new ThreeEngine(this.$refs.threeTarget,this.selectedTrainData.config,this.selectedTrainData.data,
-      //                                         this.episode_progress,
-      //                                         this.step_progress)
-      // this.ThreeEngine.addObject(...allLights)  // 添加光线
-      // this.ThreeEngine.addObject(...allHelper)   // 添加辅助
       
     },
     isLooping(newVal,oldVal){
+      //首页按钮状态
       // console.log(isLooping.value);
       // console.log(`myProp changed from ${oldVal} to ${newVal}`);
 

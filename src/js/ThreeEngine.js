@@ -428,6 +428,7 @@ export class ThreeRealTimeEngine {
       antialias: true,  // 开启抗锯齿
     })
     dom.appendChild(renderer.domElement)  // 将渲染器挂载到dom
+    console.log(dom);
     renderer.setSize(dom.offsetWidth, dom.offsetHeight, true)
     renderer.shadowMap.enabled = true;//显示影子
     let scene = new Scene()  // 实例化场景
@@ -545,63 +546,63 @@ export class ThreeRealTimeEngine {
     }
 
   }
-    async updatePositions(t_episodes,episode_progress,step_progress,duration ) {
-      // 播放动画
-      // mixer.clipAction(animation).play();
-      // 更新每个无人机的位置
-      for (let i = 0; i < t_episodes.length; i++) {
+  async updatePositions(t_episodes,episode_progress,step_progress,duration ) {
+    // 播放动画
+    // mixer.clipAction(animation).play();
+    // 更新每个无人机的位置
+    for (let i = 0; i < t_episodes.length; i++) {
+      if (!isLooping.value) {
+        episode_progress.reset(t_episodes.length)
+        break;}
+      // console.log(isLooping);
+      let episode = t_episodes[i];
+      step_progress.down = episode.num_step;
+      for (let j = 0; j < episode.step_data.length; j++) {
         if (!isLooping.value) {
-          episode_progress.reset(t_episodes.length)
+          // episode_progress.reset()
+          step_progress.reset(episode.num_step)
           break;}
-        // console.log(isLooping);
-        let episode = t_episodes[i];
-        step_progress.down = episode.num_step;
-        for (let j = 0; j < episode.step_data.length; j++) {
-          if (!isLooping.value) {
-            // episode_progress.reset()
-            step_progress.reset(episode.num_step)
-            break;}
-          console.log(isLooping);
+        console.log(isLooping);
 
-          let step_data = episode.step_data[j];
-          this.uavs.forEach((uav, n) => {
-            let next_position = [];
-            next_position.push(step_data.state.uav_position[n][0]);
-            next_position.push(step_data.state.uav_position[n][1]);
-            next_position.push(step_data.state.uav_position[n][2]);
-    
-            this.updateEntityPosition(uav, next_position, 1, duration);
-            uav.remove(uav.getObjectByName("label"));
-            uav.add(this.tag(uav.name, uav.position));
-          });
-          this.users.forEach((user, k) => {
-            let next_position = [];
-            next_position.push(step_data.state.user_position[k][0]);
-            next_position.push(step_data.state.user_position[k][1]);
-            next_position.push(0);
-    
-            this.updateEntityPosition(user, next_position, 1, duration);
-            user.remove(user.getObjectByName("label"));
-            user.add(this.tag(user.name, user.position));
-          });
-          step_progress.up = j + 1;
-          step_progress.digit = (step_progress.up / step_progress.down) * 100;
-          console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
-    
-          await new Promise(resolve => setTimeout(resolve, duration));
-    
-        }
-        episode_progress.up = i + 1;
-        episode_progress.digit = (episode_progress.up / episode_progress.down) * 100;
-        console.log("episode" + episode_progress.digit);
+        let step_data = episode.step_data[j];
+        this.uavs.forEach((uav, n) => {
+          let next_position = [];
+          next_position.push(step_data.state.uav_position[n][0]);
+          next_position.push(step_data.state.uav_position[n][1]);
+          next_position.push(step_data.state.uav_position[n][2]);
+  
+          this.updateEntityPosition(uav, next_position, 1, duration);
+          uav.remove(uav.getObjectByName("label"));
+          uav.add(this.tag(uav.name, uav.position));
+        });
+        this.users.forEach((user, k) => {
+          let next_position = [];
+          next_position.push(step_data.state.user_position[k][0]);
+          next_position.push(step_data.state.user_position[k][1]);
+          next_position.push(0);
+  
+          this.updateEntityPosition(user, next_position, 1, duration);
+          user.remove(user.getObjectByName("label"));
+          user.add(this.tag(user.name, user.position));
+        });
+        step_progress.up = j + 1;
+        step_progress.digit = (step_progress.up / step_progress.down) * 100;
+        console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
+  
+        await new Promise(resolve => setTimeout(resolve, duration));
+  
       }
+      episode_progress.up = i + 1;
+      episode_progress.digit = (episode_progress.up / episode_progress.down) * 100;
+      console.log("episode" + episode_progress.digit);
     }
+  }
 
 
-  resetUAVUser(t_cfg,episode){
+  resetUAVUser(episode){
     const loader = new GLTFLoader();
-    var uav_num = t_cfg.num_uavs;
-    var user_num = t_cfg.num_users;
+    var uav_num = episode.step_data[0].state['uav_position'].length
+    var user_num = episode.step_data[0].state['user_position'].length
     var uav_scale = 1;
     let promises = [];
     
