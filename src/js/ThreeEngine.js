@@ -8,6 +8,7 @@ import * as TWEEN from '@tweenjs/tween.js';
 import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { isLooping } from '/src/views/HomeView.vue';
+import { isSyncing} from '/src/views/RealTimeTraining.vue'
 
 import image from '/public/resource/grass.jpg'
 
@@ -551,18 +552,18 @@ export class ThreeRealTimeEngine {
     // mixer.clipAction(animation).play();
     // 更新每个无人机的位置
     for (let i = 0; i < t_episodes.length; i++) {
-      if (!isLooping.value) {
+      if (!isSyncing.value) {
         episode_progress.reset(t_episodes.length)
         break;}
       // console.log(isLooping);
       let episode = t_episodes[i];
       step_progress.down = episode.num_step;
       for (let j = 0; j < episode.step_data.length; j++) {
-        if (!isLooping.value) {
+        if (!isSyncing.value) {
           // episode_progress.reset()
           step_progress.reset(episode.num_step)
           break;}
-        console.log(isLooping);
+        // console.log(isSyncing);
 
         let step_data = episode.step_data[j];
         this.uavs.forEach((uav, n) => {
@@ -590,8 +591,8 @@ export class ThreeRealTimeEngine {
         console.log("episode" + episode_progress.digit+"step" + step_progress.digit);
   
         await new Promise(resolve => setTimeout(resolve, duration));
-  
       }
+      episode_progress.down = t_episodes.length;
       episode_progress.up = i + 1;
       episode_progress.digit = (episode_progress.up / episode_progress.down) * 100;
       console.log("episode" + episode_progress.digit);
@@ -703,7 +704,7 @@ export class ThreeRealTimeEngine {
   }
 
   startSimulate( t_episodes, episode_progress, step_progress) {
-    console.log(t_episodes);
+    // console.log(t_episodes);
     episode_progress.digit = 0;
     episode_progress.up=0
     episode_progress.down = t_episodes.length;
