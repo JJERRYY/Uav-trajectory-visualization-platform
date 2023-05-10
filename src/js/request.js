@@ -4,6 +4,7 @@ import axios from 'axios';
 
 const http = axios.create({
     baseURL: 'http://3d74g86317.imdo.co:5000/',
+    // baseURL: 'http://127.0.0.1:5000/',
     timeout: 100000,
     headers: {'X-Custom-Header': 'foobar'}
   });

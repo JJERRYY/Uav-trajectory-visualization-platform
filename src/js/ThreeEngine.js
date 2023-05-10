@@ -33,6 +33,7 @@ export class ThreeEngine {
   pointer = null;
   raycaster = null;
   labelRenderer = null;
+  // trajectoryChartOption = {};
 
   constructor(dom,t_cfg,t_episodes,episode_progress,step_progress) {
     // 创建渲染器
@@ -181,7 +182,7 @@ export class ThreeEngine {
     }
 
   }
-  async updatePositions(t_episodes,episode_progress,step_progress,duration,stateTableData ) {
+  async updatePositions(t_episodes,episode_progress,step_progress,duration,stateTableData,trajectoryChartOption ) {
     // 播放动画
     // mixer.clipAction(animation).play();
     // 更新每个无人机的位置
@@ -219,6 +220,12 @@ export class ThreeEngine {
           this.updateEntityPosition(uav, next_position, 1, duration);
           uav.remove(uav.getObjectByName("label"));
           uav.add(this.tag(uav.name, uav.position));
+
+              // Update the UAV position coordinates in the TrajectoryChartOption.series array
+          if (trajectoryChartOption.series && trajectoryChartOption.series[n]) {
+            trajectoryChartOption.series[n].data.push(next_position);
+        }
+
           // 在stateTableData字典中找到state为uav.name+'连接的用户' 并将他的value改为step_data.action.uav_association[i]
           // 在stateTableData字典中找到state为uav.name+'发射功率' 并将他的value改为step_data.action.uav_power[0][i]
           // 更新 stateTableData 数组中的元素
@@ -276,11 +283,100 @@ export class ThreeEngine {
     }
   }
 
+  generateTrajectoryChartOption(trajectoryChartOption, droneData, userData) {
+    // Set the chart type to 3D scatter
+    trajectoryChartOption.series = [{
+        type: 'scatter3D'
+    }];
 
-  resetUAVUser(t_cfg,episode,stateTableData){
+    // Set the x, y, and z axis
+    trajectoryChartOption.xAxis3D = {};
+    trajectoryChartOption.yAxis3D = {};
+    trajectoryChartOption.zAxis3D = {};
+
+    // Set the visual map
+    trajectoryChartOption.visualMap = {
+        max: 100,
+        inRange: {
+            color: ['#87aa66', '#eba438', '#d94d4c']
+        }
+    };
+
+    // Set the data for the drones
+    let droneSeries = [];
+    for (let i = 0; i < droneData.length; i++) {
+        let droneTrajectory = {
+            name: 'Drone ' + (i + 1),
+            type: 'line3D',
+            data: droneData[i]
+        };
+        droneSeries.push(droneTrajectory);
+    }
+
+    // Set the data for the users
+    let userSeries = [];
+    for (let i = 0; i < userData.length; i++) {
+        let userTrajectory = {
+            name: 'User ' + (i + 1),
+            type: 'line3D',
+            data: userData[i]
+        };
+        userSeries.push(userTrajectory);
+    }
+
+    // Add the drone and user series to the chart option
+    trajectoryChartOption.series = trajectoryChartOption.series.concat(droneSeries).concat(userSeries);
+
+    return trajectoryChartOption;
+}
+
+
+  resetUAVUser(t_cfg,episode,stateTableData,trajectoryChartOption1){
     stateTableData.splice(0)
+    // console.log(trajectoryChartOption);
     // stateTableData
-    console.log(stateTableData);
+    // console.log(stateTableData);
+
+    let trajectoryChartOption = {
+      // Set the chart type to 3D scatter
+      series: [
+      //   {
+      //     type: 'scatter3D'
+      // },
+    ],
+    grid3D: {
+      viewControl: {
+        projection: 'orthographic'
+      }
+    },
+  
+      // Set the x, y, and z axis
+      xAxis3D: {
+        type: 'value',
+        max: 1000,
+        min: 0,
+      },
+      yAxis3D: {
+        type: 'value',
+        max: 1000,
+        min: 0,
+      },
+      zAxis3D: {
+        type: 'value',
+        max: 120,
+        min: 0,
+      },
+  
+      // Set the visual map
+      visualMap: {
+          max: 100,
+          inRange: {
+              color: ['#87aa66', '#eba438', '#d94d4c']
+          }
+      }
+  };
+  // let trajectoryChartOption = this.trajectoryChartOption
+
 
     const loader = new GLTFLoader();
     var uav_num = t_cfg.num_uavs;
@@ -337,7 +433,20 @@ export class ThreeEngine {
           this.uavs.push(mesh)
           this.scene.add(mesh);
           // console.log(mesh);
-          
+          // console.log(trajectoryChartOption.series);
+          // Store the UAV position coordinates in the TrajectoryChartOption object
+          // if (!trajectoryChartOption.series[i + 1]) {
+            trajectoryChartOption.series[i] = {
+                name: 'UAV ' + (i + 1),
+                type: 'line3D',
+                data: [],
+                lineStyle: {
+                  width: 4,
+                },
+            };
+        // }
+        trajectoryChartOption.series[i ].data.push([mesh.position.x, mesh.position.z, mesh.position.y]);
+
           stateTableData.push({
             state: mesh.name+'连接的用户',
             value: episode.step_data[0].action.uav_association[i]
@@ -383,6 +492,19 @@ export class ThreeEngine {
               }
             });
 
+            // Store the user device position coordinates in the TrajectoryChartOption object
+            
+              trajectoryChartOption.series[uav_num + i ] = {
+                  name: 'User ' + (i + 1),
+                  type: 'scatter3D',
+                  data: [],
+                  lineStyle: {
+                    width: 2,
+                  },
+              };
+          
+            trajectoryChartOption.series[uav_num + i ].data.push([mesh.position.x, mesh.position.z, mesh.position.y]);
+
             // stateTableData.push({
             //   state: mesh.name,
             //   value: `(${mesh.position.x},${mesh.position.z})`
@@ -401,9 +523,11 @@ export class ThreeEngine {
         });
       });
     }
+    // console.log(trajectoryChartOption)
+    return trajectoryChartOption
   }
 
-  startSimulate( t_episodes, episode_progress, step_progress,stateTableData) {
+  startSimulate( t_episodes, episode_progress, step_progress,stateTableData,duration,trajectoryChartOption) {
     // console.log(t_episodes);
     episode_progress.digit = 0;
     episode_progress.up=0
@@ -411,7 +535,8 @@ export class ThreeEngine {
     step_progress.digit = 0;
     step_progress.up = 0;
     step_progress.down = t_episodes[0].num_step;
-    this.updatePositions( t_episodes, episode_progress, step_progress, 500,stateTableData)
+     
+    this.updatePositions( t_episodes, episode_progress, step_progress, duration,stateTableData,trajectoryChartOption)
     // dom.removeEventListener('click', this.updatePositions.bind(this, t_episodes, episode_progress, step_progress, 2000));
     // dom.addEventListener('click', this.updatePositions.bind(this, t_episodes,episode_progress,step_progress,2000));
 }
@@ -488,6 +613,7 @@ export class ThreeRealTimeEngine {
   pointer = null;
   raycaster = null;
   labelRenderer = null;
+  trajectoryChartOption = {};
 
   constructor(dom) {
     // 创建渲染器
@@ -613,6 +739,7 @@ export class ThreeRealTimeEngine {
     }
 
   }
+
   async updatePositions(t_episodes,episode_progress,step_progress,duration ) {
     // 播放动画
     // mixer.clipAction(animation).play();

@@ -5,6 +5,7 @@
   <script>
   import { onMounted, watch } from 'vue';
   import * as echarts from 'echarts';
+  import 'echarts-gl';
   
   export default {
     props: {
@@ -34,8 +35,11 @@
       watch(
         () => props.option,
         (newOption) => {
-          chart.setOption(newOption);
-        }
+          console.log(newOption);
+          chart.setOption(newOption,false);
+        },
+        // { deep: true }
+
       );
     }
   }

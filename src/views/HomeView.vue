@@ -57,7 +57,8 @@
               v-model="isLooping"
               active-text="正在仿真"
               inactive-text="停止仿真"
-            />
+              />
+              <a-slider v-model:value="speed" :disabled="isLooping" />
             </a-card>
 
             <div class="config-wrapper card" hoverable  style="width: 300px">
@@ -74,6 +75,15 @@
                 <!-- <el-table-column prop="address" label="Address" /> -->
               </el-table>
             </div>
+
+            <!-- <div class="trajectory-wrapper "   style="width: 500px"> -->
+              <!-- <canvas ref="canvas" width="500" height="500"></canvas> -->
+              <!-- <Chart id="lossChart" :option="lossChartOption"></Chart> -->
+              <!-- <Chart id="trajectoryChart" :option="trajectoryChartOption"></Chart> -->
+              <!-- <div id="trajectoryChart" style="width: 600px; height: 400px" ></div> -->
+              <!-- <Chart id="lossChart" :option="lossChartOption"></Chart> -->
+            <!-- </div> -->
+
 
           </div>
         </el-main>
@@ -146,8 +156,10 @@ import { getTrainingDataList,getTrainingDataById } from '../js/api'
 import newChart from "../js/newChart";
 import Chart from '../components/Chart.vue';
 import { ElCard } from 'element-plus';
+import * as echarts from 'echarts';
+import 'echarts-gl';
 
-
+const speed = ref<number>(50);
 const episode_progress= reactive({
       digit: 0,
       up:0,
@@ -168,6 +180,50 @@ const step_progress= reactive({
       this.down =down ;
     }
     })
+
+// const trajectoryChartOption = reactive({
+//   tooltip: {},
+//   backgroundColor: '#fff',
+//   visualMap: {
+//     show: false,
+//     dimension: 2,
+//     min: 0,
+//     max: 30,
+//     inRange: {
+//       color: [
+//         '#313695',
+//         '#4575b4',
+//         '#74add1',
+//         '#abd9e9',
+//         '#e0f3f8',
+//         '#ffffbf',
+//         '#fee090',
+//         '#fdae61',
+//         '#f46d43',
+//         '#d73027',
+//         '#a50026'
+//       ]
+//     }
+//   },
+//   xAxis3D: {
+//     type: 'value'
+//   },
+//   yAxis3D: {
+//     type: 'value'
+//   },
+//   zAxis3D: {
+//     type: 'value'
+//   },
+//   grid3D: {
+//     viewControl: {
+//       projection: 'orthographic'
+//     }
+//   },
+//   series: [
+//   ],
+// });
+
+    
 const isLooping = ref(false)
 const isSyncing = ref(false)
 const currentPage=ref('trainingVisualization');
@@ -182,6 +238,7 @@ export default {
         return {
             lossChartOption: {},
             rewardChartOption: {},
+            trajectoryChartOption:{},
             currentPage: currentPage,
             receivetCount: receivetCount,
             realTimeEpisodes: [],
@@ -264,6 +321,7 @@ export default {
                 }
             };
         },
+        
         getLossChartData() {
             let data;
             if (this.selectedTrainData.loss_list !== null) {
@@ -393,36 +451,55 @@ export default {
         },
     },
     watch: {
-        selectedTrainData(newVal, oldVal) {
-            // 在这里调用 ThreeEngine 类的方法来处理属性变化
-            // this.threeEngine.handlePropChange(newVal, oldVal);
-            // console.log(`myProp changed from ${oldVal} to ${newVal}`);
-            console.log(newVal);
-            this.ThreeEngine.resetUAVUser(this.selectedTrainData.config, this.selectedTrainData.data[0],this.stateTableData);
-            console.log(this.stateTableData);
-            
-            episode_progress.reset(this.selectedTrainData.data.length);
-            step_progress.reset(this.selectedTrainData.data[0].num_step);
-            // console.log(this.selectedTrainData.config);
-            // 遍历config，将config的属性名作为 parameter，属性值做为value，构造一个字典，依次压入this.tableData中
-            this.configTableData = [];
-            for (let key in this.selectedTrainData.config) {
-                let parameter = key;
-                let value = this.selectedTrainData.config[key];
-                this.configTableData.push({ parameter: parameter, value: value });
-            }
-            // console.log(this.tableData.values);
-            this.rewardChartOption = this.getRewardChartData();
-            this.lossChartOption = this.getLossChartData();
-            console.log(this.rewardChartOption);
-            // setOption(this.getLineChartData)
-        },
-        isLooping(newVal, oldVal) {
+      trajectoryChartOption(newVal){
+        // console.log(newVal);
+        // this.$forceUpdate();
+        // var chart = echarts.init(document.getElementById('trajectoryChart'));
+        // chart.setOption(this.trajectoryChartOption)
+        // console.log(newVal.series[0]);
+        
+        // this.trajectoryChartOption.series[0].data.push([951, 381, 815])
+        // chart.setOption(this.trajectoryChartOption)
+      },
+      selectedTrainData(newVal, oldVal) {
+          // 在这里调用 ThreeEngine 类的方法来处理属性变化
+          // this.threeEngine.handlePropChange(newVal, oldVal);
+          // console.log(`myProp changed from ${oldVal} to ${newVal}`);
+          console.log(newVal);
+          // this.trajectoryChartOption = this.ThreeEngine.resetUAVUser(this.selectedTrainData.config, this.selectedTrainData.data[0],this.stateTableData,this.trajectoryChartOption);
+          
+          this.ThreeEngine.resetUAVUser(this.selectedTrainData.config, this.selectedTrainData.data[0],this.stateTableData);
+          // this.$forceUpdate();
+          // console.log(this.stateTableData);
+          
+          episode_progress.reset(this.selectedTrainData.data.length);
+          step_progress.reset(this.selectedTrainData.data[0].num_step);
+          // console.log(this.selectedTrainData.config);
+          // 遍历config，将config的属性名作为 parameter，属性值做为value，构造一个字典，依次压入this.tableData中
+          this.configTableData = [];
+          for (let key in this.selectedTrainData.config) {
+              let parameter = key;
+              let value = this.selectedTrainData.config[key];
+              this.configTableData.push({ parameter: parameter, value: value });
+          }
+          // console.log(this.tableData.values);
+          this.rewardChartOption = this.getRewardChartData();
+          this.lossChartOption = this.getLossChartData();
+
+          // console.log(this.trajectoryChartOption);
+          
+          // console.log(this.rewardChartOption);
+          // setOption(this.getLineChartData)
+      },
+      isLooping(newVal, oldVal) {
             //首页按钮状态
             // console.log(isLooping.value);
             // console.log(`myProp changed from ${oldVal} to ${newVal}`);
             if (isLooping.value) {
-                this.ThreeEngine.startSimulate(this.selectedTrainData.data, episode_progress, step_progress,this.stateTableData);
+              // let duration = speed.value
+              let duration = 1000 - (speed.value * 9.9);//线性映射，将滑块转化为时间间隔
+
+              this.ThreeEngine.startSimulate(this.selectedTrainData.data, episode_progress, step_progress,this.stateTableData,duration,this.trajectoryChartOption);
             }
         }
     },
@@ -524,6 +601,14 @@ export default {
 .state-wrapper{
   position: absolute;
   top: 0;
+  /* left: 0; */
+  right: 0;
+  z-index: 2;
+}
+.trajectory-wrapper{
+  background: #f5f5f5;
+  position: absolute;
+  bottom: 0;
   /* left: 0; */
   right: 0;
   z-index: 2;
